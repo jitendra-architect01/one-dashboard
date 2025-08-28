@@ -10,7 +10,9 @@ import {
   TrendingUp,
   AlertTriangle,
   Target,
-  BarChart3
+  BarChart3,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 interface FilterState {
@@ -28,6 +30,8 @@ export default function AnalyticsDashboard() {
   
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
   const { getAllKPIs, businessUnitsArray } = useData();
+  
+  const [focusedChart, setFocusedChart] = useState<string | null>(null);
   
   const allKPIs = getAllKPIs();
 
@@ -108,6 +112,10 @@ export default function AnalyticsDashboard() {
     });
 
     return insights;
+  };
+
+  const toggleFocusMode = (kpiKey: string) => {
+    setFocusedChart(prev => prev === kpiKey ? null : kpiKey);
   };
 
   const insights = getPerformanceInsights();
@@ -266,14 +274,19 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Charts for Selected Category */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
               {filteredKPIs.map((kpi, index) => {
                 const chartTypes = ['line', 'bar', 'area'];
                 const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
+                const isFocused = focusedChart === kpiKey;
+                
+                // If there's a focused chart and this isn't it, don't render
+                if (focusedChart && !isFocused) return null;
                 
                 return (
                   <AdvancedChart
-                    key={`${kpi.businessUnit}-${kpi.id}`}
+                    key={kpiKey}
                     data={generateAnalyticsData(kpi)}
                     type={chartType}
                     title={`${kpi.name} (${kpi.businessUnitName})`}
@@ -284,9 +297,11 @@ export default function AnalyticsDashboard() {
                            kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
                            kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
                            kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={250}
+                    height={isFocused ? 400 : 200}
                     showComparison={true}
                     showTrend={true}
+                    isFocused={isFocused}
+                    onToggleFocus={() => toggleFocusMode(kpiKey)}
                   />
                 );
               })}
@@ -338,14 +353,19 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Sample Charts from All Categories */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
               {filteredKPIs.slice(0, 6).map((kpi, index) => {
                 const chartTypes = ['line', 'bar', 'area'];
                 const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
+                const isFocused = focusedChart === kpiKey;
+                
+                // If there's a focused chart and this isn't it, don't render
+                if (focusedChart && !isFocused) return null;
                 
                 return (
                   <AdvancedChart
-                    key={`${kpi.businessUnit}-${kpi.id}`}
+                    key={kpiKey}
                     data={generateAnalyticsData(kpi)}
                     type={chartType}
                     title={`${kpi.name} (${kpi.businessUnitName})`}
@@ -356,9 +376,11 @@ export default function AnalyticsDashboard() {
                            kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
                            kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
                            kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={250}
+                    height={isFocused ? 400 : 200}
                     showComparison={true}
                     showTrend={true}
+                    isFocused={isFocused}
+                    onToggleFocus={() => toggleFocusMode(kpiKey)}
                   />
                 );
               })}

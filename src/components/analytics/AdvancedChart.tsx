@@ -18,7 +18,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { TrendingUp, BarChart3, PieChart as PieIcon, Activity, Target } from 'lucide-react';
+import { TrendingUp, BarChart3, PieChart as PieIcon, Activity, Target, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ChartData {
   name: string;
@@ -37,6 +37,8 @@ interface AdvancedChartProps {
   height?: number;
   showComparison?: boolean;
   showTrend?: boolean;
+  isFocused?: boolean;
+  onToggleFocus?: () => void;
 }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316'];
@@ -49,7 +51,9 @@ export default function AdvancedChart({
   color = '#3B82F6',
   height = 300,
   showComparison = false,
-  showTrend = false
+  showTrend = false,
+  isFocused = false,
+  onToggleFocus
 }: AdvancedChartProps) {
   const [selectedDataPoint, setSelectedDataPoint] = useState<ChartData | null>(null);
 
@@ -167,19 +171,36 @@ export default function AdvancedChart({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-300 ${
+      isFocused ? 'col-span-full shadow-lg' : ''
+    }`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           {getChartIcon()}
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <span>Interactive</span>
-          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <span>Interactive</span>
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+          </div>
+          {onToggleFocus && (
+            <button
+              onClick={onToggleFocus}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title={isFocused ? "Exit Focus Mode" : "Enter Focus Mode"}
+            >
+              {isFocused ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
       
-      <div style={{ height: `${height}px` }}>
+      <div style={{ height: `${isFocused ? height * 1.5 : height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           {renderChart()}
         </ResponsiveContainer>

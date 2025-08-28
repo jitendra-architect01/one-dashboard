@@ -401,4 +401,6 @@ export default function AnalyticsDashboard() {
         )}
       </div>
     </div>
+  );
+}
                 

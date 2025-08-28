@@ -577,7 +577,7 @@ export const useSupabaseData = (): SupabaseData => {
                 }
               } else {
                 // This is an existing action item, update it
-                const dbUpdates = {
+                const dbUpdatesForActionItem = {
                   title: actionItem.action,
                   status: 
                     actionItem.status === "Not Started" ? "not_started" :
@@ -588,17 +588,13 @@ export const useSupabaseData = (): SupabaseData => {
                     actionItem.priority === "Critical" ? "critical" :
                     actionItem.priority === "High" ? "high" :
                     actionItem.priority === "Medium" ? "medium" : "low",
-                  priority: 
-                    actionItem.priority === "Critical" ? "critical" :
-                    actionItem.priority === "High" ? "high" :
-                    actionItem.priority === "Medium" ? "medium" : "low",
                   due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
                   assigned_to: actionItem.owner && actionItem.owner !== "Unassigned" ? actionItem.owner : null,
                   tags: actionItem.team && actionItem.team !== "General" ? [actionItem.team] : [],
-                  assigned_to: actionItem.owner && actionItem.owner !== "Unassigned" ? actionItem.owner : null,
-                  tags: actionItem.team && actionItem.team !== "General" ? [actionItem.team] : [],
+                };
+                
                 try {
-                  await DataService.updateActionItem(actionItem.id, dbUpdates);
+                  await DataService.updateActionItem(actionItem.id, dbUpdatesForActionItem);
                 } catch (actionError) {
                   console.error("Error updating action item:", actionError);
                 }

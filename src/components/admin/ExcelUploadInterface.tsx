@@ -819,14 +819,14 @@ export default function ExcelUploadInterface() {
 
         {/* Instructions */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-medium text-blue-900 mb-3">How to use Excel Data Integration:</h3>
+          <h3 className="text-lg font-medium text-blue-900 mb-3">How to use Employee Bulk Upload:</h3>
           <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-            <li>Select the business unit, month, and year for your data</li>
-            <li>Download the template specific to your business unit (Excel format recommended)</li>
-            <li>Fill in your raw data in the template or prepare your own file format</li>
-            <li>Upload your data file using the drag & drop area</li>
-            <li>Review the data preview and calculated KPIs</li>
-            <li>KPIs on your dashboard will automatically update with the new calculations</li>
+            <li>Select the business unit for the employees you want to add</li>
+            <li>Download the employee template (Excel format recommended)</li>
+            <li>Fill in employee information in the template with all required fields</li>
+            <li>Upload your employee data file using the drag & drop area</li>
+            <li>Review the employee data preview for accuracy</li>
+            <li>New employees will be added to the system with default passwords</li>
           </ol>
           
           <div className="mt-4 p-4 bg-white rounded-lg border border-blue-200">

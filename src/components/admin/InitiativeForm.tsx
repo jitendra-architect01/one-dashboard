@@ -31,7 +31,7 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
 
   const addActionItem = () => {
     const newActionItem: ActionItemData = {
-      id: Date.now().toString(),
+      id: `temp-${Date.now()}`, // Mark as temporary
       action: '',
       owner: '',
       status: 'Not Started',

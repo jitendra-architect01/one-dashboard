@@ -448,6 +448,45 @@ export const useSupabaseData = (): SupabaseData => {
 
         const newInitiative = await DataService.createInitiative(dbInitiative);
 
+        // Create action items for this initiative
+        const createdActionItems: ActionItemData[] = [];
+        if (initiative.actionItems && initiative.actionItems.length > 0) {
+          for (const actionItem of initiative.actionItems) {
+            try {
+              const dbActionItem = {
+                initiative_id: newInitiative.id,
+                business_unit_id: businessUnitData.id,
+                title: actionItem.action,
+                description: actionItem.action,
+                action_type: "task",
+                status: actionItem.status === "Not Started" ? "not_started" :
+                        actionItem.status === "In Progress" ? "in_progress" :
+                        actionItem.status === "Completed" ? "completed" : "not_started",
+                priority: actionItem.priority === "High" ? "high" :
+                          actionItem.priority === "Medium" ? "medium" : "low",
+                due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
+                assigned_to: null, // Will be set when we have user management
+                tags: [],
+                dependencies: [],
+                attachments: [],
+                comments: []
+              };
+              
+              const createdActionItem = await DataService.createActionItem(dbActionItem);
+              createdActionItems.push({
+                id: createdActionItem.id,
+                action: actionItem.action,
+                owner: actionItem.owner,
+                status: actionItem.status,
+                dueDate: actionItem.dueDate,
+                priority: actionItem.priority,
+                team: actionItem.team
+              });
+            } catch (actionError) {
+              console.error("Error creating action item:", actionError);
+            }
+          }
+        }
         // Update local state
         setBusinessUnits((prev) =>
           prev.map((bu) =>
@@ -456,7 +495,11 @@ export const useSupabaseData = (): SupabaseData => {
                   ...bu,
                   initiatives: [
                     ...bu.initiatives,
-                    { ...initiative, id: newInitiative.id },
+                    { 
+                      ...initiative, 
+                      id: newInitiative.id,
+                      actionItems: createdActionItems
+                    },
                   ],
                 }
               : bu
@@ -487,6 +530,62 @@ export const useSupabaseData = (): SupabaseData => {
 
         await DataService.updateInitiative(initiativeId, dbUpdates);
 
+        // Handle action items updates
+        if (updates.actionItems) {
+          const businessUnitData = businessUnits.find(bu => bu.code === businessUnit);
+          if (businessUnitData) {
+            // Get existing action items for this initiative
+            const existingActionItems = await DataService.fetchActionItems(initiativeId);
+            
+            // Process each action item in the update
+            for (const actionItem of updates.actionItems) {
+              if (actionItem.id.startsWith('temp-')) {
+                // This is a new action item, create it
+                const dbActionItem = {
+                  initiative_id: initiativeId,
+                  business_unit_id: businessUnitData.id,
+                  title: actionItem.action,
+                  description: actionItem.action,
+                  action_type: "task",
+                  status: actionItem.status === "Not Started" ? "not_started" :
+                          actionItem.status === "In Progress" ? "in_progress" :
+                          actionItem.status === "Completed" ? "completed" : "not_started",
+                  priority: actionItem.priority === "High" ? "high" :
+                            actionItem.priority === "Medium" ? "medium" : "low",
+                  due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
+                  assigned_to: null,
+                  tags: [],
+                  dependencies: [],
+                  attachments: [],
+                  comments: []
+                };
+                
+                try {
+                  await DataService.createActionItem(dbActionItem);
+                } catch (actionError) {
+                  console.error("Error creating new action item:", actionError);
+                }
+              } else {
+                // This is an existing action item, update it
+                const dbUpdates = {
+                  title: actionItem.action,
+                  status: actionItem.status === "Not Started" ? "not_started" :
+                          actionItem.status === "In Progress" ? "in_progress" :
+                          actionItem.status === "Completed" ? "completed" : "not_started",
+                  priority: actionItem.priority === "High" ? "high" :
+                            actionItem.priority === "Medium" ? "medium" : "low",
+                  due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
+                };
+                
+                try {
+                  await DataService.updateActionItem(actionItem.id, dbUpdates);
+                } catch (actionError) {
+                  console.error("Error updating action item:", actionError);
+                }
+              }
+            }
+          }
+        }
         // Update local state
         setBusinessUnits((prev) =>
           prev.map((bu) =>

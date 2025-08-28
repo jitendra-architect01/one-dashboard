@@ -338,4 +338,67 @@ export default function AnalyticsDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {KPI_CATEGORY_ORDER.map(categoryId => {
                   const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  const categoryKPIs = filteredKPIs.filter(kpi => kpi.category === categoryId);
+                  
+                  return (
+                    <div key={categoryId} className="bg-gray-50 rounded-lg p-4">
+                      <div className={`w-10 h-10 ${category.color} rounded-lg flex items-center justify-center mb-3`}>
+                        <span className="text-white font-bold text-sm">
+                          {category.shortForm}
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">{category.label}</h3>
+                      <p className="text-2xl font-bold text-gray-900">{categoryKPIs.length}</p>
+                      <p className="text-xs text-gray-500">KPIs in category</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Charts for All Categories */}
+            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+              {filteredKPIs.map((kpi, index) => {
+                const chartTypes = ['line', 'bar', 'area'];
+                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
+                const isFocused = focusedChart === kpiKey;
+                
+                // If there's a focused chart and this isn't it, don't render
+                if (focusedChart && !isFocused) return null;
+                
+                return (
+                  <AdvancedChart
+                    key={kpiKey}
+                    data={generateAnalyticsData(kpi)}
+                    type={chartType}
+                    title={`${kpi.name} (${kpi.businessUnitName})`}
+                    kpiUnit={kpi.unit}
+                    color={getChartColorByAttainment(kpi.current, kpi.target)}
+                    height={isFocused ? 400 : 250}
+                    showComparison={true}
+                    showTrend={true}
+                    isFocused={isFocused}
+                    onToggleFocus={() => toggleFocusMode(kpiKey)}
+                  />
+                );
+              })}
+            </div>
+
+            {filteredKPIs.length === 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
+                <p className="text-gray-600">
+                  No KPIs found for the current filters
+                  {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
                 

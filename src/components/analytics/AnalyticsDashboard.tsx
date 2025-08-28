@@ -80,10 +80,17 @@ export default function AnalyticsDashboard() {
     }).length;
     
     insights.push({
-      type: 'success',
-      title: 'Performing Well',
-      value: performingWell,
-      description: 'KPIs meeting or exceeding targets'
+      type: 'info',
+      title: 'Total KPIs',
+      value: filteredKPIs.length,
+      description: filters.epicgCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'
+    });
+    
+    insights.push({
+      type: 'warning',
+      title: 'Needs Attention',
+      value: needsAttention,
+      description: 'KPIs significantly below target'
     });
     
     insights.push({
@@ -94,10 +101,10 @@ export default function AnalyticsDashboard() {
     });
     
     insights.push({
-      type: 'warning',
-      title: 'Needs Attention',
-      value: needsAttention,
-      description: 'KPIs significantly below target'
+      type: 'success',
+      title: 'Performing Well',
+      value: performingWell,
+      description: 'KPIs meeting or exceeding targets'
     });
 
     return insights;
@@ -233,21 +240,6 @@ export default function AnalyticsDashboard() {
               </div>
             </div>
           ))}
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total KPIs</p>
-                <p className="text-3xl font-bold text-gray-900">{filteredKPIs.length}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {filters.epicgCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* KPIs by EPICG Category */}

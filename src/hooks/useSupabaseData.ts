@@ -165,7 +165,7 @@ export const useSupabaseData = (): SupabaseData => {
                       : action.priority === "medium"
                       ? "Medium"
                       : "Low",
-                  team: action.department || action.tags?.[0] || "General",
+                  team: action.tags?.[0] || action.department || "General",
                 }));
 
               return {
@@ -553,14 +553,18 @@ export const useSupabaseData = (): SupabaseData => {
                   title: actionItem.action,
                   description: actionItem.action,
                   action_type: "task",
-                  status: actionItem.status === "Not Started" ? "not_started" :
-                          actionItem.status === "In Progress" ? "in_progress" :
-                          actionItem.status === "Completed" ? "completed" : "not_started",
-                  priority: actionItem.priority === "High" ? "high" :
-                            actionItem.priority === "Medium" ? "medium" : "low",
+                  status: 
+                    actionItem.status === "Not Started" ? "not_started" :
+                    actionItem.status === "In Progress" ? "in_progress" :
+                    actionItem.status === "Completed" ? "completed" : 
+                    actionItem.status === "Blocked" ? "blocked" : "not_started",
+                  priority: 
+                    actionItem.priority === "Critical" ? "critical" :
+                    actionItem.priority === "High" ? "high" :
+                    actionItem.priority === "Medium" ? "medium" : "low",
                   due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
-                  assigned_to: actionItem.owner !== "Unassigned" ? actionItem.owner : null,
-                  tags: actionItem.team !== "General" ? [actionItem.team] : [],
+                  assigned_to: actionItem.owner && actionItem.owner !== "Unassigned" ? actionItem.owner : null,
+                  tags: actionItem.team && actionItem.team !== "General" ? [actionItem.team] : [],
                   dependencies: [],
                   attachments: [],
                   comments: []
@@ -575,14 +579,24 @@ export const useSupabaseData = (): SupabaseData => {
                 // This is an existing action item, update it
                 const dbUpdates = {
                   title: actionItem.action,
-                  status: actionItem.status === "Not Started" ? "not_started" :
-                          actionItem.status === "In Progress" ? "in_progress" :
-                          actionItem.status === "Completed" ? "completed" : "not_started",
-                  priority: actionItem.priority === "High" ? "high" :
-                            actionItem.priority === "Medium" ? "medium" : "low",
+                  status: 
+                    actionItem.status === "Not Started" ? "not_started" :
+                    actionItem.status === "In Progress" ? "in_progress" :
+                    actionItem.status === "Completed" ? "completed" : 
+                    actionItem.status === "Blocked" ? "blocked" : "not_started",
+                  priority: 
+                    actionItem.priority === "Critical" ? "critical" :
+                    actionItem.priority === "High" ? "high" :
+                    actionItem.priority === "Medium" ? "medium" : "low",
+                  priority: 
+                    actionItem.priority === "Critical" ? "critical" :
+                    actionItem.priority === "High" ? "high" :
+                    actionItem.priority === "Medium" ? "medium" : "low",
                   due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
-                };
-                
+                  assigned_to: actionItem.owner && actionItem.owner !== "Unassigned" ? actionItem.owner : null,
+                  tags: actionItem.team && actionItem.team !== "General" ? [actionItem.team] : [],
+                  assigned_to: actionItem.owner && actionItem.owner !== "Unassigned" ? actionItem.owner : null,
+                  tags: actionItem.team && actionItem.team !== "General" ? [actionItem.team] : [],
                 try {
                   await DataService.updateActionItem(actionItem.id, dbUpdates);
                 } catch (actionError) {

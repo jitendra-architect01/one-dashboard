@@ -35,6 +35,21 @@ export default function AnalyticsDashboard() {
   
   const allKPIs = getAllKPIs();
 
+  // Function to get chart color based on attainment percentage
+  const getChartColorByAttainment = (current: number, target: number) => {
+    if (target === 0) return '#6B7280'; // Gray for invalid targets
+    
+    const attainmentPercentage = (current / target) * 100;
+    
+    if (attainmentPercentage >= 95) {
+      return '#10B981'; // Green
+    } else if (attainmentPercentage >= 75) {
+      return '#F59E0B'; // Amber
+    } else {
+      return '#EF4444'; // Red
+    }
+  };
+
   // Generate analytics data from actual KPI monthly data or realistic trends
   const generateAnalyticsData = (kpi: any) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -291,13 +306,8 @@ export default function AnalyticsDashboard() {
                     type={chartType}
                     title={`${kpi.name} (${kpi.businessUnitName})`}
                     kpiUnit={kpi.unit}
-                    color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
-                           kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
-                           kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
-                           kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
-                           kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
-                           kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={isFocused ? 400 : 200}
+                    color={getChartColorByAttainment(kpi.current, kpi.target)}
+                    height={isFocused ? 400 : 250}
                     showComparison={true}
                     showTrend={true}
                     isFocused={isFocused}
@@ -328,91 +338,4 @@ export default function AnalyticsDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {KPI_CATEGORY_ORDER.map(categoryId => {
                   const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
-                  const categoryKPIs = filteredKPIs.filter(kpi => kpi.category === categoryId);
-                  
-                  return (
-                    <button
-                      key={categoryId}
-                      onClick={() => setFilters(prev => ({ ...prev, epicgCategory: categoryId }))}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-left"
-                    >
-                      <div className="flex items-center space-x-3 mb-3">
-                        <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center`}>
-                          <span className="text-white font-bold text-sm">{category.shortForm}</span>
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-gray-900">{category.label}</h3>
-                        </div>
-                      </div>
-                      <div className="text-2xl font-bold text-gray-900 mb-1">{categoryKPIs.length}</div>
-                      <div className="text-xs text-gray-500">KPIs in category</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sample Charts from All Categories */}
-            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
-              {filteredKPIs.slice(0, 6).map((kpi, index) => {
-                const chartTypes = ['line', 'bar', 'area'];
-                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
-                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
-                const isFocused = focusedChart === kpiKey;
                 
-                // If there's a focused chart and this isn't it, don't render
-                if (focusedChart && !isFocused) return null;
-                
-                return (
-                  <AdvancedChart
-                    key={kpiKey}
-                    data={generateAnalyticsData(kpi)}
-                    type={chartType}
-                    title={`${kpi.name} (${kpi.businessUnitName})`}
-                    kpiUnit={kpi.unit}
-                    color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
-                           kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
-                           kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
-                           kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
-                           kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
-                           kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={isFocused ? 400 : 200}
-                    showComparison={true}
-                    showTrend={true}
-                    isFocused={isFocused}
-                    onToggleFocus={() => toggleFocusMode(kpiKey)}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* No Data State */}
-        {allKPIs.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BarChart3 className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No KPI Data Available</h3>
-            <p className="text-gray-600 mb-4">
-              Add KPIs through the business unit admin pages to see analytics here.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {businessUnitsArray.map((unit) => (
-                <a
-                  key={unit.id}
-                  href={`${unit.path}/admin`}
-                  className="text-sm text-blue-600 hover:text-blue-800 underline"
-                >
-                  {unit.name} Admin
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-        </div>
-
-    </div>
-  );
-}

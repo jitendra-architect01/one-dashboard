@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AdvancedChart from './AdvancedChart';
 import { useData } from '../../context/DataContext';
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from '../../types/data';
 import { 
   Filter, 
   Download, 
@@ -15,14 +16,14 @@ import {
 interface FilterState {
   dateRange: string;
   businessUnit: string;
-  kpiCategory: string;
+  epicgCategory: string;
 }
 
 export default function AnalyticsDashboard() {
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'last12months',
     businessUnit: 'all',
-    kpiCategory: 'all'
+    epicgCategory: 'all'
   });
   
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
@@ -30,25 +31,42 @@ export default function AnalyticsDashboard() {
   
   const allKPIs = getAllKPIs();
 
-  // Generate sample analytics data
+  // Generate analytics data from actual KPI monthly data or realistic trends
   const generateAnalyticsData = (kpi: any) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.map((month, index) => {
-      const baseValue = kpi.current;
-      const variance = (Math.random() - 0.5) * baseValue * 0.3;
-      const trendFactor = kpi.trend === 'up' ? 1.05 : kpi.trend === 'down' ? 0.95 : 1;
-      
-      return {
+    
+    // Use actual monthly data if available, otherwise generate realistic data
+    if (kpi.monthlyData && kpi.monthlyData.length === 12) {
+      return months.map((month, index) => ({
         name: month,
-        value: Math.round(baseValue * Math.pow(trendFactor, index) + variance),
+        value: kpi.monthlyData[index] || 0,
         target: kpi.target,
-        previous: Math.round(baseValue * Math.pow(trendFactor, index - 1) + variance * 0.8)
-      };
-    });
+        previous: index > 0 ? kpi.monthlyData[index - 1] : kpi.monthlyData[index]
+      }));
+    } else {
+      // Generate realistic trend data based on actual KPI values
+      const baseValue = kpi.current;
+      const trendFactor = kpi.trend === 'up' ? 1.02 : kpi.trend === 'down' ? 0.98 : 1;
+      
+      return months.map((month, index) => {
+        const seasonality = Math.sin((index / 12) * 2 * Math.PI) * baseValue * 0.05;
+        const growth = baseValue * Math.pow(trendFactor, index) - baseValue;
+        const noise = (Math.random() - 0.5) * baseValue * 0.02;
+        const value = Math.max(0, Math.round(baseValue + growth + seasonality + noise));
+        
+        return {
+          name: month,
+          value: value,
+          target: kpi.target,
+          previous: index > 0 ? Math.round(baseValue * Math.pow(trendFactor, index - 1)) : value
+        };
+      });
+    }
   };
 
   const filteredKPIs = allKPIs.filter(kpi => {
     if (filters.businessUnit !== 'all' && kpi.businessUnit !== filters.businessUnit) return false;
+    if (filters.epicgCategory !== 'all' && kpi.category !== filters.epicgCategory) return false;
     return true;
   });
 
@@ -56,12 +74,23 @@ export default function AnalyticsDashboard() {
     const insights = [];
     const performingWell = filteredKPIs.filter(kpi => (kpi.current / kpi.target) >= 1).length;
     const needsAttention = filteredKPIs.filter(kpi => (kpi.current / kpi.target) < 0.8).length;
+    const onTrack = filteredKPIs.filter(kpi => {
+      const percentage = (kpi.current / kpi.target) * 100;
+      return percentage >= 80 && percentage < 100;
+    }).length;
     
     insights.push({
       type: 'success',
       title: 'Performing Well',
       value: performingWell,
       description: 'KPIs meeting or exceeding targets'
+    });
+    
+    insights.push({
+      type: 'info',
+      title: 'On Track',
+      value: onTrack,
+      description: 'KPIs within 80-99% of target'
     });
     
     insights.push({
@@ -83,7 +112,7 @@ export default function AnalyticsDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Advanced Analytics</h1>
-            <p className="text-lg text-gray-600">Comprehensive KPI analysis and insights</p>
+            <p className="text-lg text-gray-600">Real-time KPI analysis with EPICG categorization</p>
           </div>
           <div className="flex items-center space-x-3">
             <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -131,18 +160,50 @@ export default function AnalyticsDashboard() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">KPI Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">EPICG Category</label>
                 <select
-                  value={filters.kpiCategory}
-                  onChange={(e) => setFilters(prev => ({ ...prev, kpiCategory: e.target.value }))}
+                  value={filters.epicgCategory}
+                  onChange={(e) => setFilters(prev => ({ ...prev, epicgCategory: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="revenue">Revenue</option>
-                  <option value="performance">Performance</option>
-                  <option value="quality">Quality</option>
+                  <option value="all">All EPICG Categories</option>
+                  {KPI_CATEGORY_ORDER.map(categoryId => {
+                    const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                    return (
+                      <option key={categoryId} value={categoryId}>
+                        {category.label} ({category.shortForm})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+            </div>
+          </div>
+          
+          {/* Filter Summary */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div>
+                Showing <span className="font-medium text-gray-900">{filteredKPIs.length}</span> of <span className="font-medium text-gray-900">{allKPIs.length}</span> KPIs
+                {filters.epicgCategory !== 'all' && (
+                  <span className="ml-2">
+                    • <span className="font-medium">{KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label}</span> category
+                  </span>
+                )}
+                {filters.businessUnit !== 'all' && (
+                  <span className="ml-2">
+                    • <span className="font-medium">{businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}</span> unit
+                  </span>
+                )}
+              </div>
+              {(filters.businessUnit !== 'all' || filters.epicgCategory !== 'all') && (
+                <button
+                  onClick={() => setFilters({ dateRange: 'last12months', businessUnit: 'all', epicgCategory: 'all' })}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -158,10 +219,13 @@ export default function AnalyticsDashboard() {
                   <p className="text-xs text-gray-500 mt-1">{insight.description}</p>
                 </div>
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  insight.type === 'success' ? 'bg-green-100' : 'bg-yellow-100'
+                  insight.type === 'success' ? 'bg-green-100' : 
+                  insight.type === 'info' ? 'bg-blue-100' : 'bg-yellow-100'
                 }`}>
                   {insight.type === 'success' ? (
                     <Target className="w-6 h-6 text-green-600" />
+                  ) : insight.type === 'info' ? (
+                    <BarChart3 className="w-6 h-6 text-blue-600" />
                   ) : (
                     <AlertTriangle className="w-6 h-6 text-yellow-600" />
                   )}
@@ -175,7 +239,9 @@ export default function AnalyticsDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">Total KPIs</p>
                 <p className="text-3xl font-bold text-gray-900">{filteredKPIs.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Across all units</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {filters.epicgCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'}
+                </p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 text-blue-600" />
@@ -184,31 +250,153 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        {/* Advanced Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {filteredKPIs.slice(0, 6).map((kpi, index) => {
-            const chartTypes = ['line', 'bar', 'area'];
-            const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
-            
-            return (
-              <AdvancedChart
-                key={`${kpi.businessUnit}-${kpi.id}`}
-                data={generateAnalyticsData(kpi)}
-                type={chartType}
-                title={kpi.name}
-                kpiUnit={kpi.unit}
-                color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
-                       kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
-                       kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
-                       kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
-                       kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
-                       kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                height={300}
-                showComparison={true}
-                showTrend={true}
-              />
-            );
-          })}
+        {/* KPIs by EPICG Category */}
+        {filters.epicgCategory !== 'all' ? (
+          <div className="space-y-8">
+            {/* Selected Category Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-4">
+                <div className={`w-12 h-12 ${KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.color} rounded-lg flex items-center justify-center`}>
+                  <span className="text-white font-bold text-lg">
+                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.shortForm}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} KPIs
+                  </h2>
+                  <p className="text-gray-600">
+                    {filteredKPIs.length} KPIs in this category
+                    {filters.businessUnit !== 'all' && ` • ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Charts for Selected Category */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {filteredKPIs.map((kpi, index) => {
+                const chartTypes = ['line', 'bar', 'area'];
+                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                
+                return (
+                  <AdvancedChart
+                    key={`${kpi.businessUnit}-${kpi.id}`}
+                    data={generateAnalyticsData(kpi)}
+                    type={chartType}
+                    title={`${kpi.name} (${kpi.businessUnitName})`}
+                    kpiUnit={kpi.unit}
+                    color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
+                           kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
+                           kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
+                           kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
+                           kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
+                           kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
+                    height={300}
+                    showComparison={true}
+                    showTrend={true}
+                  />
+                );
+              })}
+            </div>
+
+            {filteredKPIs.length === 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
+                <p className="text-gray-600">
+                  No KPIs found for the selected {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} category
+                  {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* All Categories Overview */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">KPIs by EPICG Category</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {KPI_CATEGORY_ORDER.map(categoryId => {
+                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  const categoryKPIs = filteredKPIs.filter(kpi => kpi.category === categoryId);
+                  
+                  return (
+                    <button
+                      key={categoryId}
+                      onClick={() => setFilters(prev => ({ ...prev, epicgCategory: categoryId }))}
+                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 text-left"
+                    >
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center`}>
+                          <span className="text-white font-bold text-sm">{category.shortForm}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">{category.label}</h3>
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900 mb-1">{categoryKPIs.length}</div>
+                      <div className="text-xs text-gray-500">KPIs in category</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sample Charts from All Categories */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {filteredKPIs.slice(0, 6).map((kpi, index) => {
+                const chartTypes = ['line', 'bar', 'area'];
+                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                
+                return (
+                  <AdvancedChart
+                    key={`${kpi.businessUnit}-${kpi.id}`}
+                    data={generateAnalyticsData(kpi)}
+                    type={chartType}
+                    title={`${kpi.name} (${kpi.businessUnitName})`}
+                    kpiUnit={kpi.unit}
+                    color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
+                           kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
+                           kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
+                           kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
+                           kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
+                           kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
+                    height={300}
+                    showComparison={true}
+                    showTrend={true}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* No Data State */}
+        {allKPIs.length === 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No KPI Data Available</h3>
+            <p className="text-gray-600 mb-4">
+              Add KPIs through the business unit admin pages to see analytics here.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {businessUnitsArray.map((unit) => (
+                <a
+                  key={unit.id}
+                  href={`${unit.path}/admin`}
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                >
+                  {unit.name} Admin
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
 
       </div>

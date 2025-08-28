@@ -74,21 +74,18 @@ export interface EmployeeProfile {
 
 export interface KPIDefinition {
   id: string;
-  business_unit_id?: string;
   name: string;
   description?: string;
-  calculation_formula: string;
+  calculation_formula?: string;
   dependent_metrics?: string[];
-  unit?: string;
-  target_value?: number;
-  trend_direction?: "up" | "down" | "neutral";
-  color?: string;
   is_visible_on_dashboard?: boolean;
-  display_order?: number;
-  calculation_frequency?: "daily" | "weekly" | "monthly" | "quarterly";
+  business_unit_id: string;
+  target_value?: number;
+  unit?: string;
+  trend_direction?: string;
+  color?: string;
   created_at?: string;
   updated_at?: string;
-  created_by?: string;
 }
 
 export interface CalculatedKPI {
@@ -243,6 +240,8 @@ export const kpiAPI = {
       .eq("id", id)
       .select()
       .single(),
+  deleteDefinition: (id: string) =>
+    supabase.from("kpi_definitions").delete().eq("id", id),
 };
 
 export const initiativeAPI = {

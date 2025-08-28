@@ -5,6 +5,7 @@ import type {
   InitiativeData,
   BusinessUnitData,
   BusinessUnitSummary,
+  ActionItemData,
 } from "../hooks/useSupabaseData";
 
 export interface DataContextType {
@@ -31,6 +32,10 @@ export interface DataContextType {
     updates: Partial<InitiativeData>
   ) => Promise<void>;
   deleteInitiative: (unit: string, id: string) => Promise<void>;
+  updateActionItem: (
+    actionItemId: string,
+    updates: Partial<ActionItemData>
+  ) => Promise<void>;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -82,6 +87,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({
     addInitiative: supabaseData.addInitiative,
     updateInitiative: supabaseData.updateInitiative,
     deleteInitiative: supabaseData.deleteInitiative,
+    updateActionItem: supabaseData.updateActionItem,
     loading: supabaseData.loading,
     error: supabaseData.error,
     refetch: supabaseData.refetch,

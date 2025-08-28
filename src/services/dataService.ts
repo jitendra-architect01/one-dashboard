@@ -108,6 +108,16 @@ export class DataService {
     }
   }
 
+  static async deleteKPIDefinition(kpiId: string): Promise<void> {
+    try {
+      const { error } = await kpiAPI.deleteDefinition(kpiId);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error deleting KPI definition:", error);
+      throw error;
+    }
+  }
+
   // Initiative Operations
   static async fetchInitiatives(
     businessUnitId?: string

@@ -1,43 +1,207 @@
 import React, { useState } from "react";
+import { Calendar, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, Edit3, Save, X, AlertTriangle, Circle } from "lucide-react";
+import { useData } from "../context/DataContext";
+import type { KPIData } from "../hooks/useSupabaseData";
 import KPICard from "./KPICard";
 import InitiativeSection from "./InitiativeSection";
 import TrendlineChart from "./TrendlineChart";
-import { Calendar, ChevronDown } from "lucide-react";
-import { useData } from "../context/DataContext";
-import type { KPIData } from "../hooks/useSupabaseData";
 
-interface BusinessUnitPageProps {
-  businessUnitCode: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
+interface EditableActionItemProps {
+  item: {
+    id: string;
+    action: string;
+    owner: string;
+    status: "Not Started" | "In Progress" | "Completed" | "Overdue";
+    dueDate: string;
+    priority: "Low" | "Medium" | "High";
+    team: string;
+    initiativeTitle: string;
+  };
+  onUpdate: (id: string, updates: any) => Promise<void>;
 }
 
-// Business unit configuration - not used in this component but kept for reference
+const EditableActionItem: React.FC<EditableActionItemProps> = ({ item, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    status: item.status,
+    priority: item.priority,
+    dueDate: item.dueDate,
+  });
+
+  const handleSave = async () => {
+    try {
+      await onUpdate(item.id, editData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update action item:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditData({
+      status: item.status,
+      priority: item.priority,
+      dueDate: item.dueDate,
+    });
+    setIsEditing(false);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "In Progress":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "Overdue":
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-100 text-red-800";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <tr className="border-b hover:bg-gray-50">
+        <td className="px-6 py-4 text-sm text-gray-900">{item.action}</td>
+        <td className="px-6 py-4 text-sm text-gray-900">{item.initiativeTitle}</td>
+        <td className="px-6 py-4 text-sm text-gray-900">{item.owner}</td>
+        <td className="px-6 py-4 text-sm">
+          <select
+            value={editData.status}
+            onChange={(e) => setEditData({ ...editData, status: e.target.value as any })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <select
+            value={editData.priority}
+            onChange={(e) => setEditData({ ...editData, priority: e.target.value as any })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <input
+            type="date"
+            value={editData.dueDate === "No due date" ? "" : editData.dueDate}
+            onChange={(e) => setEditData({ ...editData, dueDate: e.target.value || "No due date" })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          />
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <div className="flex space-x-2">
+            <button
+              onClick={handleSave}
+              className="text-green-600 hover:text-green-800"
+              title="Save"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="text-red-600 hover:text-red-800"
+              title="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-b hover:bg-gray-50">
+      <td className="px-6 py-4 text-sm text-gray-900">{item.action}</td>
+      <td className="px-6 py-4 text-sm text-gray-900">{item.initiativeTitle}</td>
+      <td className="px-6 py-4 text-sm text-gray-900">{item.owner}</td>
+      <td className="px-6 py-4 text-sm">
+        <div className="flex items-center space-x-2">
+          {getStatusIcon(item.status)}
+          <span>{item.status}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm">
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}`}>
+          {item.priority}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-900">{item.dueDate}</td>
+      <td className="px-6 py-4 text-sm">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-blue-600 hover:text-blue-800"
+          title="Edit"
+        >
+          <Edit3 className="w-4 h-4" />
+        </button>
+      </td>
+    </tr>
+  );
+};
 
 export default function BusinessUnitPage({
   businessUnitCode,
-  title,
-  description,
-  icon: IconComponent,
-  color,
-}: BusinessUnitPageProps) {
-  const [expandedInitiatives, setExpandedInitiatives] = useState<number[]>([0]);
-  const [selectedQuarters, setSelectedQuarters] = useState<string[]>(["Q4"]);
+  color = "bg-blue-500",
+}: {
+  businessUnitCode: string;
+  color?: string;
+}) {
+  const [expandedInitiatives, setExpandedInitiatives] = useState<number[]>([]);
   const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
-  const { businessUnits } = useData();
+  const [selectedKPIForTrend, setSelectedKPIForTrend] = useState<string>("");
+  const { businessUnits, updateActionItem } = useData();
 
   const businessUnit =
     businessUnits[businessUnitCode as keyof typeof businessUnits];
   const kpis = businessUnit?.kpis || [];
   const initiatives = businessUnit?.initiatives || [];
 
+  // Set the first KPI as selected for trend display by default
+  React.useEffect(() => {
+    if (kpis.length > 0 && !selectedKPIForTrend) {
+      setSelectedKPIForTrend(kpis[0].id);
+    }
+  }, [kpis, selectedKPIForTrend]);
+
+  // Determine current quarter
+  const getCurrentQuarter = () => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    
+    if (month >= 0 && month <= 2) return { id: "Q1", year };
+    if (month >= 3 && month <= 5) return { id: "Q2", year };
+    if (month >= 6 && month <= 8) return { id: "Q3", year };
+    return { id: "Q4", year };
+  };
+
+  const currentQuarter = getCurrentQuarter();
+
   const quarters = [
-    { id: "Q1", label: "Q1 2025", months: [0, 1, 2] },
-    { id: "Q2", label: "Q2 2025", months: [3, 4, 5] },
-    { id: "Q3", label: "Q3 2025", months: [6, 7, 8] },
-    { id: "Q4", label: "Q4 2024", months: [9, 10, 11] },
+    { id: "Q1", label: `Q1 ${currentQuarter.year}`, months: [0, 1, 2] },
+    { id: "Q2", label: `Q2 ${currentQuarter.year}`, months: [3, 4, 5] },
+    { id: "Q3", label: `Q3 ${currentQuarter.year}`, months: [6, 7, 8] },
+    { id: "Q4", label: `Q4 ${currentQuarter.year}`, months: [9, 10, 11] },
   ];
 
   const handleQuarterToggle = (quarterId: string) => {
@@ -99,6 +263,75 @@ export default function BusinessUnitPage({
     }
   };
 
+  const handleKPIClick = (kpiId: string) => {
+    setSelectedKPIForTrend(kpiId);
+  };
+
+  const selectedKPI = kpis.find(kpi => kpi.id === selectedKPIForTrend);
+
+  // Get all action items from all initiatives for this business unit
+  const allActionItems = initiatives.flatMap((initiative) =>
+    (initiative.actionItems || []).map((item) => ({
+      ...item,
+      initiativeTitle: initiative.title,
+      status: mapActionItemStatus(item.status) as
+        | "Not Started"
+        | "In Progress"
+        | "Completed"
+        | "Overdue",
+      priority: mapActionItemPriority(item.priority) as
+        | "High"
+        | "Medium"
+        | "Low",
+    }))
+  );
+
+  // Get status icon and color for action items
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "In Progress":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "Overdue":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      default:
+        return <Circle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "High":
+        return "text-red-600 bg-red-100";
+      case "Medium":
+        return "text-yellow-600 bg-yellow-100";
+      case "Low":
+        return "text-green-600 bg-green-100";
+      default:
+        return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const [selectedQuarters, setSelectedQuarters] = useState<string[]>([currentQuarter.id]);
+
+  if (!businessUnit) {
+    return (
+      <div className="p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Business Unit Not Found
+            </h1>
+            <p className="text-gray-600">
+              The business unit "{businessUnitCode}" could not be found.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
@@ -107,73 +340,116 @@ export default function BusinessUnitPage({
           <div
             className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center mr-4`}
           >
-            <IconComponent className="w-6 h-6 text-white" />
+            <Calendar className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-            <p className="text-lg text-gray-600">{description}</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {businessUnit.name}
+            </h1>
+            <p className="text-lg text-gray-600">
+              Performance dashboard and strategic initiatives
+            </p>
           </div>
         </div>
 
-        {/* KPIs Grid */}
+        {/* 1. Key Performance Indicators */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
               Key Performance Indicators
             </h2>
-
-            <div className="relative">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowQuarterDropdown(!showQuarterDropdown)}
-                className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  {selectedQuarters.length === 0
-                    ? "Select Quarters"
-                    : selectedQuarters.length === 1
-                    ? quarters.find((q) => q.id === selectedQuarters[0])?.label
-                    : `${selectedQuarters.length} Quarters Selected`}
-                </span>
-                <ChevronDown className="w-4 h-4 ml-2 text-gray-500" />
+                <Calendar className="w-4 h-4 mr-2" />
+                Quarter Filter
+                <ChevronDown className="w-4 h-4 ml-2" />
               </button>
-
-              {showQuarterDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                  <div className="p-4">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">
-                      Select Quarters
-                    </h3>
-                    <div className="space-y-2">
-                      {quarters.map((quarter) => (
-                        <label key={quarter.id} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedQuarters.includes(quarter.id)}
-                            onChange={() => handleQuarterToggle(quarter.id)}
-                            className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            {quarter.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Quarter Selection Dropdown */}
+          {showQuarterDropdown && (
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Select Quarters to Aggregate
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {quarters.map((quarter) => (
+                  <button
+                    key={quarter.id}
+                    onClick={() => handleQuarterToggle(quarter.id)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
+                      selectedQuarters.includes(quarter.id)
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {quarter.label}
+                  </button>
+                ))}
+              </div>
+              {selectedQuarters.length > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Showing aggregated data for: {selectedQuarters.join(", ")}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {kpis.map((kpi) => {
               const aggregatedKPI = getAggregatedKPIData(kpi);
-              return <KPICard key={kpi.id} kpi={aggregatedKPI} />;
+              return (
+                <div 
+                  key={kpi.id} 
+                  onClick={() => handleKPIClick(kpi.id)}
+                  className="cursor-pointer"
+                >
+                  <KPICard 
+                    kpi={aggregatedKPI} 
+                    isSelected={kpi.id === selectedKPIForTrend}
+                  />
+                </div>
+              );
             })}
           </div>
         </div>
 
-        {/* Initiatives Section */}
+        {/* 2. Performance Trends - Single KPI Display */}
+        {selectedKPI && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Performance Trends
+              </h2>
+              <div className="text-sm text-gray-600">
+                Showing: <span className="font-medium text-gray-900">{selectedKPI.name}</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">
+                    {selectedKPI.name}
+                  </h3>
+                  <p className="text-xs text-gray-500">{selectedKPI.period}</p>
+                </div>
+                <div className={`w-3 h-3 rounded-full ${selectedKPI.color}`} />
+              </div>
+              <TrendlineChart
+                kpiName={selectedKPI.name}
+                kpiUnit={selectedKPI.unit}
+                kpiColor={selectedKPI.color}
+                monthlyData={selectedKPI.monthlyData}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 3. Strategic Initiatives */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             Strategic Initiatives
@@ -204,38 +480,60 @@ export default function BusinessUnitPage({
           </div>
         </div>
 
-        {/* Trendline Charts */}
-        {kpis.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Performance Trends
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {kpis.map((kpi) => (
-                <div
-                  key={kpi.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-1">
-                        {kpi.name}
-                      </h3>
-                      <p className="text-xs text-gray-500">{kpi.period}</p>
-                    </div>
-                    <div className={`w-3 h-3 rounded-full ${kpi.color}`} />
-                  </div>
-                  <TrendlineChart
-                    kpiName={kpi.name}
-                    kpiUnit={kpi.unit}
-                    kpiColor={kpi.color}
-                    monthlyData={kpi.monthlyData}
-                  />
-                </div>
-              ))}
+        {/* 4. Action Item Tracker */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Action Item Tracker
+          </h2>
+          {allActionItems.length > 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Action
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Initiative
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Owner
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Priority
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Due Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allActionItems.map((item, index) => (
+                      <EditableActionItem
+                        key={`${item.initiativeTitle}-${index}`}
+                        item={item}
+                        onUpdate={async (id, updates) => {
+                          await updateActionItem(id, updates);
+                        }}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
+              <p className="text-gray-500">No action items found for this business unit.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,73 +1,51 @@
 import React, { useState } from "react";
-import { Briefcase, Plus, Edit, Trash2, BarChart3, Target } from "lucide-react";
-import KPIForm from "../../components/admin/KPIForm";
-import InitiativeForm from "../../components/admin/InitiativeForm";
+import { Plus, Edit, Trash2, BarChart3, Calendar, TrendingUp } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import type { KPIData, InitiativeData } from "../../hooks/useSupabaseData";
+import KPIForm from "../../components/admin/KPIForm";
+import InitiativeForm from "../../components/admin/InitiativeForm";
 
 export default function SalesAdminPage() {
   const [activeTab, setActiveTab] = useState<"kpis" | "initiatives">("kpis");
   const [showKPIForm, setShowKPIForm] = useState(false);
   const [showInitiativeForm, setShowInitiativeForm] = useState(false);
   const [editingKPI, setEditingKPI] = useState<KPIData | null>(null);
-  const [editingInitiative, setEditingInitiative] =
-    useState<InitiativeData | null>(null);
+  const [editingInitiative, setEditingInitiative] = useState<InitiativeData | null>(null);
+  const { businessUnits, addKPI, updateKPI, deleteKPI, addInitiative, updateInitiative, deleteInitiative } = useData();
 
-  const {
-    businessUnits,
-    addKPI,
-    updateKPI,
-    deleteKPI,
-    addInitiative,
-    updateInitiative,
-    deleteInitiative,
-  } = useData();
-
-  const kpis = businessUnits.sales?.kpis || [];
-  const initiatives = businessUnits.sales?.initiatives || [];
+  const salesUnit = businessUnits["sales"];
+  const kpis = salesUnit?.kpis || [];
+  const initiatives = salesUnit?.initiatives || [];
 
   const handleSaveKPI = (kpiData: Partial<KPIData>) => {
     if (editingKPI) {
-      updateKPI("sales", editingKPI.id, {
-        ...kpiData,
-        color: "bg-blue-500",
-        isVisibleOnDashboard: editingKPI.isVisibleOnDashboard || false,
-      });
+      updateKPI("sales", editingKPI.id, kpiData);
       setEditingKPI(null);
     } else {
-      addKPI("sales", {
-        ...kpiData,
-        color: "bg-blue-500",
-        isVisibleOnDashboard: false,
-      } as Omit<KPIData, "id">);
+      addKPI("sales", kpiData as Omit<KPIData, "id">);
     }
     setShowKPIForm(false);
   };
 
   const handleSaveInitiative = (initiativeData: Partial<InitiativeData>) => {
     if (editingInitiative) {
-      updateInitiative("sales", editingInitiative.id, {
-        ...initiativeData,
-      });
+      updateInitiative("sales", editingInitiative.id, initiativeData);
       setEditingInitiative(null);
     } else {
-      addInitiative("sales", { ...initiativeData } as Omit<
-        InitiativeData,
-        "id"
-      >);
+      addInitiative("sales", initiativeData as Omit<InitiativeData, "id">);
     }
     setShowInitiativeForm(false);
   };
 
-  const handleDeleteKPI = (id: string) => {
-    if (confirm("Are you sure you want to delete this KPI?")) {
-      deleteKPI("sales", id);
+  const handleDeleteKPI = (kpiId: string) => {
+    if (window.confirm("Are you sure you want to delete this KPI?")) {
+      deleteKPI("sales", kpiId);
     }
   };
 
-  const handleDeleteInitiative = (id: string) => {
-    if (confirm("Are you sure you want to delete this initiative?")) {
-      deleteInitiative("sales", id);
+  const handleDeleteInitiative = (initiativeId: string) => {
+    if (window.confirm("Are you sure you want to delete this initiative?")) {
+      deleteInitiative("sales", initiativeId);
     }
   };
 
@@ -77,7 +55,7 @@ export default function SalesAdminPage() {
         {/* Header */}
         <div className="flex items-center mb-8">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-4">
-            <Briefcase className="w-6 h-6 text-white" />
+            <BarChart3 className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Sales Admin</h1>
@@ -109,7 +87,7 @@ export default function SalesAdminPage() {
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              <Target className="w-4 h-4 mr-2 inline" />
+              <Calendar className="w-4 h-4 mr-2 inline" />
               Initiatives Management
             </button>
           </nav>
@@ -142,6 +120,10 @@ export default function SalesAdminPage() {
                 isEditing={!!editingKPI}
                 businessUnitKPIs={kpis}
                 selectedKPIId={editingKPI?.id}
+                onKPISelect={(kpiId) => {
+                  const kpi = kpis.find(k => k.id === kpiId);
+                  if (kpi) setEditingKPI(kpi);
+                }}
               />
             )}
 
@@ -156,7 +138,7 @@ export default function SalesAdminPage() {
                       <h3 className="text-lg font-medium text-gray-900">
                         {kpi.name}
                       </h3>
-                      <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                      <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                         <div>
                           <span className="font-medium">Current:</span>{" "}
                           {kpi.current.toLocaleString()}
@@ -219,8 +201,42 @@ export default function SalesAdminPage() {
 
             {showInitiativeForm && (
               <InitiativeForm
-                initiative={editingInitiative}
-                onSave={handleSaveInitiative}
+                initiative={editingInitiative ? {
+                  title: editingInitiative.title,
+                  description: editingInitiative.description,
+                  actionItems: editingInitiative.actionItems.map(item => ({
+                    id: item.id,
+                    action: item.action,
+                    owner: item.owner,
+                    status: item.status === 'Blocked' ? 'Not Started' : 
+                           item.status === 'In Progress' ? 'In Progress' : 
+                           item.status === 'Completed' ? 'Completed' : 'Not Started',
+                    dueDate: item.dueDate,
+                    priority: item.priority === 'Critical' ? 'High' : 
+                             item.priority === 'High' ? 'High' : 
+                             item.priority === 'Medium' ? 'Medium' : 'Low',
+                    team: item.team
+                  }))
+                } : undefined}
+                onSave={(formData) => {
+                  const initiativeData: Partial<InitiativeData> = {
+                    title: formData.title,
+                    description: formData.description,
+                    actionItems: formData.actionItems.map(item => ({
+                      id: item.id,
+                      action: item.action,
+                      owner: item.owner,
+                      status: item.status === 'Not Started' ? 'Blocked' : 
+                             item.status === 'In Progress' ? 'In Progress' : 
+                             item.status === 'Completed' ? 'Completed' : 'Blocked',
+                      dueDate: item.dueDate,
+                      priority: item.priority === 'High' ? 'Critical' : 
+                               item.priority === 'Medium' ? 'Medium' : 'Low',
+                      team: item.team
+                    }))
+                  };
+                  handleSaveInitiative(initiativeData);
+                }}
                 onCancel={() => {
                   setShowInitiativeForm(false);
                   setEditingInitiative(null);

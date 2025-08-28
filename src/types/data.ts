@@ -1,3 +1,9 @@
+export type KPITrend = "up" | "down" | "neutral";
+
+export type KPIPeriod = "monthly" | "quarterly" | "yearly";
+
+export type KPICategory = "Economics" | "People" | "Innovation" | "Customer" | "Growth";
+
 export interface KPIData {
   id: string;
   name: string;
@@ -5,12 +11,11 @@ export interface KPIData {
   target: number;
   unit: string;
   period: string;
-  trend: "up" | "down" | "neutral";
+  trend: string;
   color: string;
   isVisibleOnDashboard: boolean;
   businessUnit: string;
   businessUnitName: string;
-  monthlyData?: number[];
 }
 
 export interface ActionItemData {
@@ -99,18 +104,17 @@ export interface DataContextType {
     updates: Partial<KPIData>
   ) => void;
   deleteKPI: (unit: string, id: string) => void;
-  addInitiative: (unit: string, initiative: Omit<InitiativeData, "id">) => void;
+  addInitiative: (
+    unit: string,
+    initiative: Omit<InitiativeData, "id">
+  ) => void;
   updateInitiative: (
     businessUnit: string,
     initiativeId: string,
     updates: Partial<InitiativeData>
   ) => void;
   deleteInitiative: (unit: string, id: string) => void;
-  updateKPIMonthlyData: (
-    businessUnit: string,
-    kpiId: string,
-    monthlyData: number[]
-  ) => void;
-  processExcelData: (excelData: ExcelData) => Promise<void>;
-  getDataSchema: (businessUnit: string) => DataSchema;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }

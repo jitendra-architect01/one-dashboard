@@ -437,7 +437,7 @@ export default function Dashboard() {
                   Sales ARR target exceeded by 12%
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
-                  Q4 2024 performance update - Year 1 ARR now at $2.85M vs
+                  Q4 2025 performance update - Year 1 ARR now at $2.85M vs
                   $2.54M target
                 </p>
                 <span className="text-xs text-gray-500 mt-2 block">
@@ -455,7 +455,7 @@ export default function Dashboard() {
                   Marketing SQLs generation on track
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
-                  Q4 2024 milestone achieved - 145 SQLs generated vs 180 target
+                  Q4 2025 milestone achieved - 145 SQLs generated vs 180 target
                 </p>
                 <span className="text-xs text-gray-500 mt-2 block">
                   4 hours ago

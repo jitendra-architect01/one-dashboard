@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DataService } from "../services/dataService";
+import { getMockKPIs, getMockInitiatives } from "../services/mockDataService";
 import type { KPIDefinition, Initiative } from "../lib/supabase";
 
 // Frontend-friendly data interfaces
@@ -10,7 +11,7 @@ export interface KPIData {
   target: number;
   unit: string;
   period: string;
-  trend: "up" | "down" | "neutral";
+  trend: string;
   color: string;
   isVisibleOnDashboard: boolean;
   businessUnit: string;
@@ -78,6 +79,10 @@ export interface SupabaseData {
     businessUnit: string,
     initiativeId: string
   ) => Promise<void>;
+  updateActionItem: (
+    actionItemId: string,
+    updates: Partial<ActionItemData>
+  ) => Promise<void>;
 }
 
 export const useSupabaseData = (): SupabaseData => {
@@ -99,6 +104,13 @@ export const useSupabaseData = (): SupabaseData => {
           DataService.fetchInitiatives(),
           DataService.fetchActionItems(),
         ]);
+
+      console.log("Raw data received:", {
+        businessUnits: businessUnitsData,
+        kpis: kpiDefinitions,
+        initiatives,
+        actionItems,
+      });
 
       // Transform data to frontend format
       const transformedBusinessUnits: BusinessUnitData[] =
@@ -216,28 +228,52 @@ export const useSupabaseData = (): SupabaseData => {
   );
 
   const updateKPI = useCallback(
-    async (businessUnit: string, kpiId: string, updates: Partial<KPIData>) => {
+    async (
+      businessUnit: string,
+      kpiId: string,
+      updates: Partial<KPIData>
+    ) => {
       try {
-        // Find the KPI to get its business unit ID
+        console.log('updateKPI called with:', { businessUnit, kpiId, updates });
+        
         const businessUnitData = businessUnits.find(
           (bu) => bu.code === businessUnit
         );
-        const kpi = businessUnitData?.kpis.find((k) => k.id === kpiId);
-        if (!kpi) return;
-        console.log("updates kpi ", updates);
-        // Transform frontend data to database format
-        const dbUpdates: Partial<KPIDefinition> = {};
-        if (updates.name !== undefined) dbUpdates.name = updates.name;
-        if (updates.target !== undefined)
-          dbUpdates.target_value = updates.target;
-        if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
-        if (updates.trend !== undefined)
-          dbUpdates.trend_direction = updates.trend;
-        if (updates.color !== undefined) dbUpdates.color = updates.color;
+        if (!businessUnitData) {
+          throw new Error("Business unit not found");
+        }
+
+        const kpi = businessUnitData.kpis.find((k) => k.id === kpiId);
+        if (!kpi) {
+          throw new Error("KPI not found");
+        }
+
+        const dbUpdates: any = {};
+        
+        // Only update fields that exist in the database schema
+        if (updates.target !== undefined) dbUpdates.target_value = updates.target;
         if (updates.isVisibleOnDashboard !== undefined)
           dbUpdates.is_visible_on_dashboard = updates.isVisibleOnDashboard;
+        if (updates.unit !== undefined) dbUpdates.unit = updates.unit;
+        if (updates.trend !== undefined) dbUpdates.trend_direction = updates.trend;
+        if (updates.color !== undefined) dbUpdates.color = updates.color;
+        
+        // Note: monthly_data field doesn't exist in KPIDefinition table
+        // We'll need to handle this separately or add the field to the database
+        if (updates.monthlyData !== undefined) {
+          console.warn('monthlyData field not supported in current database schema');
+          // TODO: Add monthly_data field to KPIDefinition table or create separate table
+        }
+
+        console.log('Database updates to be applied:', dbUpdates);
+        
+        if (Object.keys(dbUpdates).length === 0) {
+          console.log('No valid fields to update, skipping database call');
+          return;
+        }
 
         await DataService.updateKPIDefinition(kpiId, dbUpdates);
+        console.log('Database update successful');
 
         // Update local state
         setBusinessUnits((prev) =>
@@ -252,37 +288,91 @@ export const useSupabaseData = (): SupabaseData => {
               : bu
           )
         );
+        
+        console.log('Local state update successful');
       } catch (err) {
         console.error("Error updating KPI:", err);
-        setError(err instanceof Error ? err.message : "Failed to update KPI");
+        setError(
+          err instanceof Error ? err.message : "Failed to update KPI"
+        );
+        throw err; // Re-throw to let caller handle the error
       }
     },
     [businessUnits]
   );
 
+  const updateActionItem = useCallback(
+    async (actionItemId: string, updates: Partial<ActionItemData>) => {
+      try {
+        const dbUpdates: any = {};
+        if (updates.action !== undefined) dbUpdates.title = updates.action;
+        if (updates.owner !== undefined) dbUpdates.assigned_to = updates.owner;
+        if (updates.status !== undefined) {
+          const statusMap: Record<string, string> = {
+            'Not Started': 'not_started',
+            'In Progress': 'in_progress',
+            'Completed': 'completed',
+            'Overdue': 'blocked' // Mapped 'Overdue' to 'blocked' in DB
+          };
+          dbUpdates.status = statusMap[updates.status] || updates.status;
+        }
+        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+        if (updates.priority !== undefined) {
+          const priorityMap: Record<string, string> = {
+            'Low': 'low',
+            'Medium': 'medium',
+            'High': 'high'
+          };
+          dbUpdates.priority = priorityMap[updates.priority] || updates.priority;
+        }
+        if (updates.team !== undefined) dbUpdates.team = updates.team;
+
+        await DataService.updateActionItem(actionItemId, dbUpdates);
+
+        setBusinessUnits((prev) =>
+          prev.map((bu) => ({
+            ...bu,
+            initiatives: bu.initiatives.map((init) => ({
+              ...init,
+              actionItems: init.actionItems.map((action) =>
+                action.id === actionItemId ? { ...action, ...updates } : action
+              ),
+            })),
+          }))
+        );
+      } catch (err) {
+        console.error("Error updating action item:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to update action item"
+        );
+        throw err;
+      }
+    },
+    []
+  );
+
   const addKPI = useCallback(
     async (businessUnit: string, kpi: Omit<KPIData, "id">) => {
       try {
-        const businessUnitData = businessUnits.find(
-          (bu) => bu.code === businessUnit
-        );
-        if (!businessUnitData) throw new Error("Business unit not found");
+        const businessUnitData = businessUnits.find((bu) => bu.code === businessUnit);
+        if (!businessUnitData) {
+          throw new Error("Business unit not found");
+        }
 
-        // Transform frontend data to database format
-        const dbKPI: Partial<KPIDefinition> = {
+        const kpiData: Partial<KPIDefinition> = {
           name: kpi.name,
-          target_value: kpi.target,
-          unit: kpi.unit,
-          trend_direction: kpi.trend,
-          color: kpi.color,
-          calculation_formula:
-            "SUM(CASE WHEN deal_type = 'new' AND arr_year = 1 THEN pipeline_value ELSE 0 END)",
+          description: kpi.name,
+          calculation_formula: "manual",
           dependent_metrics: ["pipeline_value", "deal_type", "arr_year"],
-          is_visible_on_dashboard: kpi.isVisibleOnDashboard,
+          is_visible_on_dashboard: true, // Always make new KPIs visible
           business_unit_id: businessUnitData.id,
+          target_value: kpi.target || 0,
+          unit: kpi.unit || "",
+          trend_direction: kpi.trend || "neutral",
+          color: kpi.color || "bg-gray-500",
         };
 
-        const newKPI = await DataService.createKPIDefinition(dbKPI);
+        const newKPI = await DataService.createKPIDefinition(kpiData);
 
         // Update local state
         setBusinessUnits((prev) =>
@@ -290,14 +380,23 @@ export const useSupabaseData = (): SupabaseData => {
             bu.code === businessUnit
               ? {
                   ...bu,
-                  kpis: [...bu.kpis, { ...kpi, id: newKPI.id }],
+                  kpis: [
+                    ...bu.kpis,
+                    {
+                      ...kpi,
+                      id: newKPI.id,
+                      isVisibleOnDashboard: true, // Ensure it's visible in local state
+                    },
+                  ],
                 }
               : bu
           )
         );
       } catch (err) {
         console.error("Error adding KPI:", err);
-        setError(err instanceof Error ? err.message : "Failed to add KPI");
+        setError(
+          err instanceof Error ? err.message : "Failed to add KPI"
+        );
       }
     },
     [businessUnits]
@@ -306,9 +405,8 @@ export const useSupabaseData = (): SupabaseData => {
   const deleteKPI = useCallback(
     async (businessUnit: string, kpiId: string) => {
       try {
-        await DataService.updateKPIDefinition(kpiId, {
-          is_visible_on_dashboard: false,
-        });
+        // Actually delete the KPI from the database
+        await DataService.deleteKPIDefinition(kpiId);
 
         // Update local state
         setBusinessUnits((prev) =>
@@ -326,7 +424,7 @@ export const useSupabaseData = (): SupabaseData => {
         setError(err instanceof Error ? err.message : "Failed to delete KPI");
       }
     },
-    [businessUnits]
+    []
   );
 
   const addInitiative = useCallback(
@@ -465,5 +563,6 @@ export const useSupabaseData = (): SupabaseData => {
     addInitiative,
     updateInitiative,
     deleteInitiative,
+    updateActionItem,
   };
 };

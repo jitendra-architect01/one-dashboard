@@ -1,21 +1,20 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-
-interface KPIData {
-  name: string;
-  current: number;
-  target: number;
-  unit: string;
-  period: string;
-  trend: 'up' | 'down' | 'neutral';
-  color: string;
-}
+import type { KPIData } from '../hooks/useSupabaseData';
 
 interface KPICardProps {
   kpi: KPIData;
   onClick?: () => void;
   isSelected?: boolean;
 }
+
+// Helper function to format unit display
+const formatUnit = (unit: string): string => {
+  // For numbers, return empty string (no symbol)
+  if (unit === 'number') return '';
+  // Return the unit as-is (it should already be $, %, or empty)
+  return unit;
+};
 
 export default function KPICard({ kpi, onClick, isSelected = false }: KPICardProps) {
   const percentage = (kpi.current / kpi.target) * 100;
@@ -66,12 +65,12 @@ export default function KPICard({ kpi, onClick, isSelected = false }: KPICardPro
           <span className="text-2xl font-bold text-gray-900">
             {kpi.current.toLocaleString()}
           </span>
-          <span className="text-sm text-gray-500">{kpi.unit}</span>
+          <span className="text-sm text-gray-500">{formatUnit(kpi.unit)}</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Target: {kpi.target.toLocaleString()} {kpi.unit}</span>
+            <span className="text-gray-600">Target: {kpi.target.toLocaleString()}{formatUnit(kpi.unit)}</span>
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor()}`}>
               {percentage.toFixed(0)}%
             </span>

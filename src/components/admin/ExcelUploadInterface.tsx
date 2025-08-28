@@ -24,11 +24,13 @@ const businessUnitOptions = [
 
 export default function ExcelUploadInterface() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedBusinessUnit, setSelectedBusinessUnit] = useState<string>('sales');
+  const [selectedMonth, setSelectedMonth] = useState<string>('1');
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const { updateKPIs } = useData();
+  const { updateKPIs, businessUnits, updateKPI } = useData();
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -68,50 +70,35 @@ export default function ExcelUploadInterface() {
       return;
     }
 
-    Array.from(files).forEach(file => {
-      const supportedTypes = [
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-        'application/vnd.ms-excel', // .xls
-        'text/csv', // .csv
-        'application/csv', // .csv (alternative MIME type)
-        'text/plain', // .txt, .tsv
-        'application/json' // .json
-      ];
-      
-      const fileExtension = file.name.toLowerCase().split('.').pop();
-      const supportedExtensions = ['xlsx', 'xls', 'csv', 'txt', 'tsv', 'json'];
-      
-      if (supportedTypes.includes(file.type) || supportedExtensions.includes(fileExtension || '')) {
-        
-        const newFile: UploadedFile = {
-          file,
-          businessUnit: selectedBusinessUnit,
-          month: selectedMonth,
-          year: selectedYear,
-          status: 'pending'
-        };
-
-        setUploadedFiles(prev => [...prev, newFile]);
-        processFile(newFile);
-      } else {
-        alert(`Unsupported file type. Please upload: Excel (.xlsx, .xls), CSV (.csv), Text (.txt, .tsv), or JSON (.json) files`);
-      }
-    });
+    // Use the new handleFileUpload function for better message handling
+    handleFileUpload(files);
   };
 
   const processFile = async (uploadedFile: UploadedFile) => {
+    console.log('Starting to process file:', uploadedFile.file.name);
+    
+    // Clear previous messages
+    setUploadSuccess(null);
+    setUploadError(null);
+    
     setUploadedFiles(prev => 
       prev.map(f => f === uploadedFile ? { ...f, status: 'processing' } : f)
     );
 
     try {
+      console.log('Reading Excel file...');
       // Actually parse the Excel file
       const fileData = await readExcelFile(uploadedFile.file);
+      console.log('File data read successfully:', fileData.length, 'rows');
       
+      console.log('Validating data structure...');
       // Validate the data structure
       const validationResult = validateExcelData(fileData, uploadedFile.businessUnit);
       
       if (validationResult.errors.length > 0) {
+        console.log('Validation errors:', validationResult.errors);
+        const errorMessage = `Validation failed: ${validationResult.errors.join(', ')}`;
+        setUploadError(errorMessage);
         setUploadedFiles(prev => 
           prev.map(f => f === uploadedFile ? { 
             ...f, 
@@ -122,8 +109,10 @@ export default function ExcelUploadInterface() {
         return;
       }
       
+      console.log('Processing Excel data...');
       // Process the actual Excel data
       const processedData = await processExcelData(uploadedFile.businessUnit, fileData, uploadedFile.month, uploadedFile.year);
+      console.log('Data processed successfully:', processedData.calculatedKPIs.length, 'KPIs');
       
       setUploadedFiles(prev => 
         prev.map(f => f === uploadedFile ? { 
@@ -133,16 +122,23 @@ export default function ExcelUploadInterface() {
         } : f)
       );
 
+      console.log('Updating KPIs with processed data...');
       // Update KPIs with the processed data
       await updateKPIsFromData(uploadedFile.businessUnit, processedData.calculatedKPIs);
+      console.log('File processing completed successfully');
+      
+      // Set success message
+      setUploadSuccess(`Successfully uploaded and processed ${processedData.calculatedKPIs.length} KPIs for ${uploadedFile.businessUnit}`);
       
     } catch (error) {
       console.error('Error processing Excel file:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process file. Please check the format and try again.';
+      setUploadError(errorMessage);
       setUploadedFiles(prev => 
         prev.map(f => f === uploadedFile ? { 
           ...f, 
           status: 'error',
-          errors: [error instanceof Error ? error.message : 'Failed to process file. Please check the format and try again.']
+          errors: [errorMessage]
         } : f)
       );
     }
@@ -205,8 +201,7 @@ export default function ExcelUploadInterface() {
     }
     
     // Check for required columns
-    const requiredColumns = ['Metric_Name'];
-    const monthColumns = months.map(m => m.toLowerCase());
+    const requiredColumns = ['Metric_Name', 'Data_Type'];
     
     requiredColumns.forEach(col => {
       if (!headers.some((h: string) => h && h.toLowerCase().includes(col.toLowerCase()))) {
@@ -214,13 +209,23 @@ export default function ExcelUploadInterface() {
       }
     });
     
-    // Check for at least some month columns
-    const hasMonthColumns = monthColumns.some(month => 
-      headers.some((h: string) => h && h.toLowerCase().includes(month))
+    // Check for at least some month columns (should be between Metric_Name and Data_Type)
+    const metricNameIndex = headers.findIndex((h: string) => 
+      h && h.toLowerCase().includes('metric') && h.toLowerCase().includes('name')
+    );
+    const dataTypeIndex = headers.findIndex((h: string) => 
+      h && h.toLowerCase().includes('data') && h.toLowerCase().includes('type')
     );
     
-    if (!hasMonthColumns) {
-      errors.push('No month columns found. Please include monthly data columns (January, February, etc.)');
+    if (metricNameIndex === -1 || dataTypeIndex === -1) {
+      errors.push('Missing required columns: Metric_Name or Data_Type');
+      return { errors };
+    }
+    
+    // Check if there are month columns between Metric_Name and Data_Type
+    const monthColumns = headers.slice(metricNameIndex + 1, dataTypeIndex);
+    if (monthColumns.length === 0) {
+      errors.push('No month columns found between Metric_Name and Data_Type');
     }
     
     return { errors };
@@ -239,35 +244,36 @@ export default function ExcelUploadInterface() {
       h && h.toLowerCase().includes('metric') && h.toLowerCase().includes('name')
     );
     
-    const monthIndices = months.map(month => 
-      headers.findIndex((h: string) => h && h.toLowerCase().includes(month.toLowerCase()))
+    const dataTypeIndex = headers.findIndex((h: string) => 
+      h && h.toLowerCase().includes('data') && h.toLowerCase().includes('type')
     );
     
-    const targetIndex = headers.findIndex((h: string) => 
-      h && h.toLowerCase().includes('target')
-    );
-    
-    const unitIndex = headers.findIndex((h: string) => 
-      h && h.toLowerCase().includes('unit')
-    );
+    // Get month columns (between Metric_Name and Data_Type)
+    const monthColumns = headers.slice(metricNameIndex + 1, dataTypeIndex);
     
     // Process each row
     const processedMetrics = dataRows
       .filter(row => row && row[metricNameIndex]) // Filter out empty rows
       .map(row => {
         const metricName = row[metricNameIndex];
-        const monthlyValues = monthIndices.map(index => 
-          index >= 0 ? (parseFloat(row[index]) || 0) : 0
+        
+        // Extract monthly values from month columns
+        const monthlyValues = monthColumns.map((monthHeader: string, index: number) => {
+          const columnIndex = metricNameIndex + 1 + index;
+          return parseFloat(row[columnIndex]) || 0;
+        });
+        
+        // Find the KPI in the current business unit to get target and unit
+        const currentKPI = businessUnits[businessUnit]?.kpis.find(kpi => 
+          kpi.name.toLowerCase() === metricName.toLowerCase()
         );
-        const target = targetIndex >= 0 ? (parseFloat(row[targetIndex]) || 0) : 0;
-        const unit = unitIndex >= 0 ? (row[unitIndex] || '') : '';
         
         return {
           metric: metricName,
           monthlyData: monthlyValues,
-          target,
-          unit,
-          current: monthlyValues[new Date().getMonth()] || monthlyValues[monthlyValues.length - 1] || 0
+          target: currentKPI?.target || 0,
+          unit: currentKPI?.unit || '',
+          current: monthlyValues[monthlyValues.length - 1] || 0 // Use last month's value as current
         };
       });
     
@@ -319,8 +325,69 @@ export default function ExcelUploadInterface() {
 
   const updateKPIsFromData = async (businessUnit: string, calculatedKPIs: any[]) => {
     try {
-      // Update the KPIs in the data context
-      updateKPIs(businessUnit, calculatedKPIs);
+      console.log(`Starting to update ${calculatedKPIs.length} KPIs for ${businessUnit}`);
+      
+      if (calculatedKPIs.length === 0) {
+        console.log('No KPIs to update');
+        return;
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Update each KPI with its monthly data
+      for (const kpi of calculatedKPIs) {
+        console.log(`Processing KPI: ${kpi.name}`);
+        
+        // Validate KPI data
+        if (!kpi.name || kpi.current === undefined || isNaN(kpi.current)) {
+          console.error(`Invalid KPI data for ${kpi.name}:`, kpi);
+          errorCount++;
+          continue;
+        }
+        
+        // Find the existing KPI in the business unit
+        const existingKPI = businessUnits[businessUnit]?.kpis.find(existing => 
+          existing.name.toLowerCase() === kpi.name.toLowerCase()
+        );
+        
+        if (existingKPI) {
+          console.log(`Found existing KPI: ${existingKPI.name}, updating...`);
+          
+          // Update the KPI with new monthly data and current value
+          try {
+            console.log(`Updating KPI ${existingKPI.name} with current value: ${kpi.current}`);
+            
+            // Add timeout to prevent hanging
+            const updatePromise = updateKPI(businessUnit, existingKPI.id, {
+              // monthlyData: kpi.monthlyData, // Temporarily removed - database schema doesn't support this field
+              current: kpi.current
+            });
+            
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Update timeout after 30 seconds')), 30000)
+            );
+            
+            await Promise.race([updatePromise, timeoutPromise]);
+            console.log(`Successfully updated KPI: ${existingKPI.name}`);
+            successCount++;
+          } catch (updateError) {
+            console.error(`Error updating KPI ${existingKPI.name}:`, updateError);
+            errorCount++;
+            // Continue with other KPIs instead of failing completely
+          }
+        } else {
+          console.log(`No existing KPI found for: ${kpi.name}`);
+          errorCount++;
+        }
+      }
+      
+      console.log(`Update completed: ${successCount} successful, ${errorCount} errors`);
+      
+      if (errorCount > 0) {
+        throw new Error(`Updated ${successCount} KPIs successfully, but ${errorCount} failed`);
+      }
+      
       console.log(`Successfully updated ${calculatedKPIs.length} KPIs for ${businessUnit}`);
     } catch (error) {
       console.error('Error updating KPIs:', error);
@@ -329,53 +396,98 @@ export default function ExcelUploadInterface() {
   };
 
   const downloadTemplate = (businessUnit: string) => {
+    // Fetch current KPIs for the selected business unit
+    const currentKPIs = businessUnits[businessUnit]?.kpis || [];
+
+    // Get current month and year for dynamic column generation
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11 (January = 0)
+    
+    // Generate month headers from January to current month
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    const monthsToShow = monthNames.slice(0, currentMonth + 1);
+    
     // Generate Excel template content based on business unit
     const templateHeaders = [
       'Metric_Name',
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-      'Target_Value', 'Unit', 'Data_Type'
+      ...monthsToShow,
+      'Data_Type'
     ];
 
-    // Get sample metrics based on business unit
-    const getSampleMetrics = (unit: string) => {
+    // Generate template data from current KPIs
+    const generateTemplateData = () => {
+      if (currentKPIs.length === 0) {
+        // Fallback to sample data if no KPIs exist
+        return getSampleMetrics(businessUnit, monthsToShow.length);
+      }
+
+      return currentKPIs.map(kpi => {
+        // Create monthly data array for months from January to current month
+        const monthlyData = [];
+        
+        for (let i = 0; i <= currentMonth; i++) {
+          if (kpi.monthlyData && kpi.monthlyData.length > i) {
+            // Use existing monthly data if available
+            monthlyData.push(kpi.monthlyData[i].toString());
+          } else {
+            // Use current value divided by number of months as placeholder
+            const monthlyValue = Math.round(kpi.current / (currentMonth + 1));
+            monthlyData.push(monthlyValue.toString());
+          }
+        }
+
+        return [
+          kpi.name,
+          ...monthlyData,
+          'actual'
+        ];
+      });
+    };
+
+    // Get sample metrics based on business unit (fallback) - updated for dynamic months
+    const getSampleMetrics = (unit: string, monthCount: number) => {
       const samples = {
         sales: [
-          ['Year_1_ARR_Net_Pipeline', '2100000', '2200000', '2350000', '2450000', '2550000', '2650000', '2700000', '2750000', '2800000', '2850000', '2900000', '2950000', '3200000', '$', 'actual'],
-          ['Total_ARR_Pipeline', '3500000', '3600000', '3750000', '3850000', '3950000', '4050000', '4100000', '4150000', '4180000', '4200000', '4250000', '4300000', '4500000', '$', 'actual'],
-          ['Win_Rate', '20', '21', '21', '22', '22', '22', '23', '22', '22', '23', '22', '23', '25', '%', 'actual']
+          ['Year_1_ARR_Net_Pipeline', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_ARR_Pipeline', ...Array(monthCount).fill('0'), 'actual'],
+          ['Win_Rate', ...Array(monthCount).fill('0'), 'actual']
         ],
         marketing: [
-          ['Total_DMs_Booked', '120', '125', '130', '135', '140', '142', '143', '144', '145', '145', '150', '155', '180', 'meetings', 'actual'],
-          ['MQL_to_SQL_Percentage', '42', '43', '44', '44', '45', '45', '45', '45', '45', '46', '46', '47', '50', '%', 'actual'],
-          ['Cost_per_MQL', '90', '88', '87', '86', '85', '85', '84', '84', '85', '85', '83', '82', '75', '$', 'actual']
+          ['Total_DMs_Booked', ...Array(monthCount).fill('0'), 'actual'],
+          ['MQL_to_SQL_Percentage', ...Array(monthCount).fill('0'), 'actual'],
+          ['Cost_per_MQL', ...Array(monthCount).fill('0'), 'actual']
         ],
         professionalServices: [
-          ['PS_Revenue_Generated', '1600000', '1650000', '1700000', '1750000', '1800000', '1820000', '1830000', '1840000', '1845000', '1850000', '1860000', '1870000', '2000000', '$', 'actual'],
-          ['PS_Margin_Percentage', '65', '66', '67', '67', '68', '68', '68', '68', '68', '69', '69', '70', '70', '%', 'actual'],
-          ['Inflight_CSAT_Score', '4.1', '4.1', '4.2', '4.2', '4.2', '4.3', '4.3', '4.3', '4.3', '4.3', '4.4', '4.4', '4.5', '/5', 'actual']
+          ['PS_Revenue_Generated', ...Array(monthCount).fill('0'), 'actual'],
+          ['PS_Margin_Percentage', ...Array(monthCount).fill('0'), 'actual'],
+          ['Inflight_CSAT_Score', ...Array(monthCount).fill('0'), 'actual']
         ],
         customerSuccess: [
-          ['Total_ARR', '4200000', '4250000', '4300000', '4350000', '4400000', '4420000', '4440000', '4460000', '4480000', '4500000', '4520000', '4540000', '5000000', '$', 'actual'],
-          ['Total_Churn_ARR', '500000', '480000', '470000', '465000', '460000', '455000', '452000', '451000', '450000', '448000', '445000', '440000', '300000', '$', 'actual'],
-          ['Total_Adoption_Percentage', '72', '73', '74', '75', '76', '77', '77', '78', '78', '78', '79', '80', '85', '%', 'actual']
+          ['Total_ARR', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_Churn_ARR', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_Adoption_Percentage', ...Array(monthCount).fill('0'), 'actual']
         ],
         productEngineering: [
-          ['Total_New_Features_Delivered', '24', '25', '26', '26', '27', '27', '28', '28', '28', '28', '29', '30', '32', 'features', 'actual'],
-          ['Total_Release_Variance', '88', '89', '90', '91', '91', '92', '92', '92', '92', '93', '93', '94', '95', '%', 'actual'],
-          ['Total_Defect_Leakage', '3.2', '3.1', '3.0', '2.9', '2.9', '2.8', '2.8', '2.8', '2.8', '2.7', '2.7', '2.6', '2.0', '%', 'actual']
+          ['Total_New_Features_Delivered', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_Release_Variance', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_Defect_Leakage', ...Array(monthCount).fill('0'), 'actual']
         ],
         humanResources: [
-          ['Total_Offers_Made', '30', '32', '33', '34', '35', '35', '35', '35', '35', '36', '37', '38', '40', 'offers', 'actual'],
-          ['Total_Onboardings', '20', '21', '22', '23', '24', '24', '24', '24', '24', '25', '26', '27', '30', 'hires', 'actual'],
-          ['Voluntary_Attrition', '9.2', '9.0', '8.8', '8.7', '8.6', '8.5', '8.5', '8.5', '8.5', '8.4', '8.3', '8.2', '7.0', '%', 'actual']
+          ['Total_Offers_Made', ...Array(monthCount).fill('0'), 'actual'],
+          ['Total_Onboardings', ...Array(monthCount).fill('0'), 'actual'],
+          ['Voluntary_Attrition', ...Array(monthCount).fill('0'), 'actual']
         ]
       };
       return samples[unit as keyof typeof samples] || samples.sales;
     };
 
-    const sampleData = getSampleMetrics(businessUnit);
-    const allData = [templateHeaders, ...sampleData];
+    const templateData = generateTemplateData();
+    const allData = [templateHeaders, ...templateData];
 
     // Create Excel workbook
     const wb = XLSX.utils.book_new();
@@ -384,10 +496,7 @@ export default function ExcelUploadInterface() {
     // Set column widths for better readability
     const colWidths = [
       { wch: 25 }, // Metric_Name
-      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, // Jan-Jun
-      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, // Jul-Dec
-      { wch: 15 }, // Target_Value
-      { wch: 8 },  // Unit
+      ...Array(monthsToShow.length).fill({ wch: 12 }), // Monthly columns
       { wch: 10 }  // Data_Type
     ];
     ws['!cols'] = colWidths;
@@ -398,6 +507,54 @@ export default function ExcelUploadInterface() {
     // Generate Excel file and download
     const unitName = businessUnitOptions.find(u => u.id === businessUnit)?.name || businessUnit;
     XLSX.writeFile(wb, `${unitName}_KPI_Template.xlsx`);
+  };
+
+  const handleFileUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    
+    // Clear previous messages
+    setUploadSuccess(null);
+    setUploadError(null);
+    
+    const validFiles: File[] = [];
+    
+    // Validate file types
+    Array.from(files).forEach(file => {
+      const supportedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv', // .csv
+        'application/csv', // .csv (alternative MIME type)
+        'text/plain', // .txt, .tsv
+        'application/json' // .json
+      ];
+      
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      const supportedExtensions = ['xlsx', 'xls', 'csv', 'txt', 'tsv', 'json'];
+      
+      if (supportedTypes.includes(file.type) || supportedExtensions.includes(fileExtension || '')) {
+        validFiles.push(file);
+      } else {
+        alert(`Unsupported file type: ${file.name}. Please upload: Excel (.xlsx, .xls), CSV (.csv), Text (.txt, .tsv), or JSON (.json) files`);
+      }
+    });
+    
+    if (validFiles.length === 0) return;
+    
+    const newFiles: UploadedFile[] = validFiles.map(file => ({
+      file,
+      businessUnit: selectedBusinessUnit,
+      month: selectedMonth,
+      year: selectedYear,
+      status: 'pending' as const,
+      errors: [],
+      preview: []
+    }));
+    
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    
+    // Process each file
+    newFiles.forEach(processFile);
   };
 
   return (
@@ -522,6 +679,37 @@ export default function ExcelUploadInterface() {
             </div>
           </div>
         </div>
+
+        {/* Success and Error Messages */}
+        {uploadSuccess && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">{uploadSuccess}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {uploadError && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-red-800">{uploadError}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Uploaded Files */}
         {uploadedFiles.length > 0 && (

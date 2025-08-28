@@ -26,6 +26,14 @@ interface TrendlineChartProps {
   monthlyData?: number[];
 }
 
+// Helper function to format unit display
+const formatUnit = (unit: string): string => {
+  // For numbers, return empty string (no symbol)
+  if (unit === 'number') return '';
+  // Return the unit as-is (it should already be $, %, or empty)
+  return unit;
+};
+
 export default function TrendlineChart({ kpiName, kpiUnit, kpiColor, monthlyData }: TrendlineChartProps) {
   // Generate mock YTD data for demonstration
   const months = [
@@ -57,26 +65,8 @@ export default function TrendlineChart({ kpiName, kpiUnit, kpiColor, monthlyData
       {
         label: kpiName,
         data: getTrendData(),
-        backgroundColor: kpiColor.replace('bg-', '').includes('purple') ? 'rgba(147, 51, 234, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('blue') ? 'rgba(59, 130, 246, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('green') ? 'rgba(34, 197, 94, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('orange') ? 'rgba(249, 115, 22, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('indigo') ? 'rgba(99, 102, 241, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('teal') ? 'rgba(20, 184, 166, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('pink') ? 'rgba(236, 72, 153, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('red') ? 'rgba(239, 68, 68, 0.8)' :
-                        kpiColor.replace('bg-', '').includes('yellow') ? 'rgba(245, 158, 11, 0.8)' :
-                        'rgba(107, 114, 128, 0.8)',
-        borderColor: kpiColor.replace('bg-', '').includes('purple') ? 'rgba(147, 51, 234, 1)' :
-                     kpiColor.replace('bg-', '').includes('blue') ? 'rgba(59, 130, 246, 1)' :
-                     kpiColor.replace('bg-', '').includes('green') ? 'rgba(34, 197, 94, 1)' :
-                     kpiColor.replace('bg-', '').includes('orange') ? 'rgba(249, 115, 22, 1)' :
-                     kpiColor.replace('bg-', '').includes('indigo') ? 'rgba(99, 102, 241, 1)' :
-                     kpiColor.replace('bg-', '').includes('teal') ? 'rgba(20, 184, 166, 1)' :
-                     kpiColor.replace('bg-', '').includes('pink') ? 'rgba(236, 72, 153, 1)' :
-                     kpiColor.replace('bg-', '').includes('red') ? 'rgba(239, 68, 68, 1)' :
-                     kpiColor.replace('bg-', '').includes('yellow') ? 'rgba(245, 158, 11, 1)' :
-                     'rgba(107, 114, 128, 1)',
+        backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue with transparency
+        borderColor: 'rgba(59, 130, 246, 1)', // Solid blue
         borderWidth: 2,
         borderRadius: 4,
         borderSkipped: false,
@@ -97,7 +87,7 @@ export default function TrendlineChart({ kpiName, kpiUnit, kpiColor, monthlyData
       tooltip: {
         callbacks: {
           label: function(context: any) {
-            return `${context.parsed.y.toLocaleString()}${kpiUnit}`;
+            return `${context.parsed.y.toLocaleString()}${formatUnit(kpiUnit)}`;
           }
         }
       }
@@ -125,7 +115,7 @@ export default function TrendlineChart({ kpiName, kpiUnit, kpiColor, monthlyData
           },
           color: '#6B7280',
           callback: function(value: any) {
-            return `${value.toLocaleString()}${kpiUnit}`;
+            return `${value.toLocaleString()}${formatUnit(kpiUnit)}`;
           }
         },
       },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
+import type { KPIData } from '../../hooks/useSupabaseData';
 
 interface KPIFormData {
   name: string;
@@ -8,6 +9,7 @@ interface KPIFormData {
   unit: string;
   period: string;
   trend: 'up' | 'down' | 'neutral';
+  color?: string;
   quarterlyTargets?: {
     Q1: number;
     Q2: number;
@@ -18,13 +20,13 @@ interface KPIFormData {
 }
 
 interface KPIFormProps {
-  kpi?: KPIFormData;
-  onSave: (kpi: KPIFormData) => void;
+  kpi?: KPIData | null;
+  onSave: (kpi: Partial<KPIData>) => void;
   onCancel: () => void;
   isEditing?: boolean;
-  businessUnitKPIs?: KPIFormData[];
-  selectedKPIId?: number;
-  onKPISelect?: (kpiId: number) => void;
+  businessUnitKPIs?: KPIData[];
+  selectedKPIId?: string;
+  onKPISelect?: (kpiId: string) => void;
 }
 
 export default function KPIForm({ 
@@ -36,28 +38,39 @@ export default function KPIForm({
   selectedKPIId,
   onKPISelect
 }: KPIFormProps) {
-  const [selectedKPI, setSelectedKPI] = useState<KPIFormData | null>(
+  // For editing existing KPIs
+  const [selectedKPI, setSelectedKPI] = useState<KPIData | null>(
     isEditing && kpi ? kpi : null
   );
   
+  // For adding new KPIs
+  const [formData, setFormData] = useState<KPIFormData>({
+    name: '',
+    current: 0,
+    target: 0,
+    unit: '',
+    period: '',
+    trend: 'neutral',
+  });
+  
   const [quarterlyTargets, setQuarterlyTargets] = useState({
-    Q1: kpi?.quarterlyTargets?.Q1 || kpi?.target || 0,
-    Q2: kpi?.quarterlyTargets?.Q2 || kpi?.target || 0,
-    Q3: kpi?.quarterlyTargets?.Q3 || kpi?.target || 0,
-    Q4: kpi?.quarterlyTargets?.Q4 || kpi?.target || 0,
-    Year: kpi?.quarterlyTargets?.Year || kpi?.target || 0,
+    Q1: 0,
+    Q2: 0,
+    Q3: 0,
+    Q4: 0,
+    Year: kpi?.target || 0,
   });
 
-  const handleKPISelection = (kpiId: number) => {
-    const selected = businessUnitKPIs.find((k, index) => index === kpiId);
+  const handleKPISelection = (kpiId: string) => {
+    const selected = businessUnitKPIs.find((k) => k.id === kpiId);
     if (selected) {
       setSelectedKPI(selected);
       setQuarterlyTargets({
-        Q1: selected.quarterlyTargets?.Q1 || selected.target || 0,
-        Q2: selected.quarterlyTargets?.Q2 || selected.target || 0,
-        Q3: selected.quarterlyTargets?.Q3 || selected.target || 0,
-        Q4: selected.quarterlyTargets?.Q4 || selected.target || 0,
-        Year: selected.quarterlyTargets?.Year || selected.target || 0,
+        Q1: 0,
+        Q2: 0,
+        Q3: 0,
+        Q4: 0,
+        Year: selected.target || 0,
       });
       if (onKPISelect) {
         onKPISelect(kpiId);
@@ -76,7 +89,7 @@ export default function KPIForm({
     const updatedKPI = {
       ...selectedKPI,
       quarterlyTargets,
-      target: quarterlyTargets.Year // Use yearly target as the main target
+      target: quarterlyTargets.Year, // Use yearly target as the main target
     };
 
     onSave(updatedKPI);
@@ -89,28 +102,29 @@ export default function KPIForm({
     }));
   };
 
+  const handleChange = (field: keyof KPIFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleNewKPISubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const kpiData: Partial<KPIData> = {
+      name: formData.name,
+      current: formData.current,
+      target: formData.target,
+      unit: formData.unit,
+      period: formData.period,
+      trend: formData.trend,
+      color: formData.color || 'bg-blue-500',
+      isVisibleOnDashboard: false
+    };
+    
+    onSave(kpiData);
+  };
+
   if (!isEditing) {
     // For adding new KPIs, show the original form
-    const [formData, setFormData] = useState<KPIFormData>(
-      kpi || {
-        name: '',
-        current: 0,
-        target: 0,
-        unit: '',
-        period: '',
-        trend: 'neutral'
-      }
-    );
-
-    const handleChange = (field: keyof KPIFormData, value: any) => {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleNewKPISubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      onSave(formData);
-    };
-
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -137,14 +151,17 @@ export default function KPIForm({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Unit
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.unit}
                 onChange={(e) => handleChange('unit', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., $, %, units"
                 required
-              />
+              >
+                <option value="">Select unit type</option>
+                <option value="$">$ US Dollar</option>
+                <option value="%">% Percent</option>
+                <option value="number"># Number (No symbol)</option>
+              </select>
             </div>
 
             <div>
@@ -265,7 +282,7 @@ export default function KPIForm({
             {businessUnitKPIs.map((kpiItem, index) => (
               <div
                 key={index}
-                onClick={() => handleKPISelection(index)}
+                onClick={() => handleKPISelection(kpiItem.id)}
                 className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                   selectedKPI?.name === kpiItem.name
                     ? 'border-blue-500 bg-blue-50 shadow-md'
@@ -303,7 +320,7 @@ export default function KPIForm({
           <div className="border-t border-gray-200 pt-6">
             <div className="mb-4">
               <h4 className="text-lg font-medium text-gray-900 mb-2">
-                Target Values for: {selectedKPI.name}
+                Edit KPI: {selectedKPI.name}
               </h4>
               <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                 <div className="grid grid-cols-2 gap-4">

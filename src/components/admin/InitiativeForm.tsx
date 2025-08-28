@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, X, Plus, Trash2 } from 'lucide-react';
 import { ActionItemData } from '../ActionItem';
+import { useAuth } from '../../context/AuthContext';
 
 interface InitiativeFormData {
   title: string;
@@ -16,6 +17,11 @@ interface InitiativeFormProps {
 }
 
 export default function InitiativeForm({ initiative, onSave, onCancel, isEditing = false }: InitiativeFormProps) {
+  const { listEmployeeProfiles } = useAuth();
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+
   const [formData, setFormData] = useState<InitiativeFormData>(
     initiative || {
       title: '',
@@ -23,6 +29,31 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
       actionItems: []
     }
   );
+
+  // Load employees and teams on component mount
+  React.useEffect(() => {
+    const loadEmployeeData = async () => {
+      try {
+        setLoadingEmployees(true);
+        const employeeProfiles = await listEmployeeProfiles();
+        setEmployees(employeeProfiles);
+        
+        // Extract unique teams from employees
+        const uniqueTeams = [...new Set(
+          employeeProfiles
+            .map(emp => emp.team || emp.department)
+            .filter(Boolean)
+        )].sort();
+        setTeams(uniqueTeams);
+      } catch (error) {
+        console.error('Error loading employee data:', error);
+      } finally {
+        setLoadingEmployees(false);
+      }
+    };
+
+    loadEmployeeData();
+  }, [listEmployeeProfiles]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,11 +64,11 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
     const newActionItem: ActionItemData = {
       id: `temp-${Date.now()}`, // Mark as temporary
       action: '',
-      owner: '',
+      owner: employees.length > 0 ? employees[0].first_name + ' ' + employees[0].last_name : '',
       status: 'Not Started',
       dueDate: '',
       priority: 'Medium',
-      team: ''
+      team: teams.length > 0 ? teams[0] : ''
     };
     setFormData(prev => ({
       ...prev,
@@ -146,28 +177,56 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Owner
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={actionItem.owner}
                       onChange={(e) => updateActionItem(index, 'owner', e.target.value)}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Action owner"
                       required
+                      disabled={loadingEmployees}
                     />
+                      {loadingEmployees ? (
+                        <option value="">Loading employees...</option>
+                      ) : employees.length === 0 ? (
+                        <option value="">No employees available</option>
+                      ) : (
+                        <>
+                          <option value="">Select owner</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={`${emp.first_name} ${emp.last_name}`}>
+                              {emp.first_name} {emp.last_name} ({emp.employee_code})
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Team
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={actionItem.team}
                       onChange={(e) => updateActionItem(index, 'team', e.target.value)}
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Team name"
                       required
+                      disabled={loadingEmployees}
                     />
+                      {loadingEmployees ? (
+                        <option value="">Loading teams...</option>
+                      ) : teams.length === 0 ? (
+                        <option value="">No teams available</option>
+                      ) : (
+                        <>
+                          <option value="">Select team</option>
+                          {teams.map(team => (
+                            <option key={team} value={team}>
+                              {team}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
                   </div>
 
                   <div>

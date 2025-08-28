@@ -504,6 +504,39 @@ export default function KPIForm({
                 </div>
               </div>
             </div>
+
+            {/* EPICG Category Selection */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                EPICG Category
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                {KPI_CATEGORY_ORDER.map((categoryId) => {
+                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  return (
+                    <button
+                      key={categoryId}
+                      type="button"
+                      onClick={() => setEditingCategory(categoryId)}
+                      className={`p-4 border rounded-lg text-center transition-all duration-200 ${
+                        editingCategory === categoryId
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+                        <span className="text-white font-bold text-sm">{category.shortForm}</span>
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">{category.label}</div>
+                      <div className="text-xs text-gray-500">({category.shortForm})</div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                Selected: <span className="font-medium">{editingCategory}</span>
+              </div>
+            </div>
           </div>
         )}
 

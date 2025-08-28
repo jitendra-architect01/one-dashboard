@@ -84,6 +84,7 @@ export interface KPIDefinition {
   unit?: string;
   trend_direction?: string;
   color?: string;
+  category?: string;
   created_at?: string;
   updated_at?: string;
 }

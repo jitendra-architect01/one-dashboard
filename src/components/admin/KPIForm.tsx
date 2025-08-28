@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
 import type { KPIData } from '../../hooks/useSupabaseData';
-import { KPI_CATEGORIES } from '../../types/data';
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from '../../types/data';
 
 interface KPIFormData {
   name: string;
@@ -64,10 +64,14 @@ export default function KPIForm({
     Year: kpi?.target || 0,
   });
 
+  // For editing existing KPIs - track category changes
+  const [editingCategory, setEditingCategory] = useState<string>('');
+
   const handleKPISelection = (kpiId: string) => {
     const selected = businessUnitKPIs.find((k) => k.id === kpiId);
     if (selected) {
       setSelectedKPI(selected);
+      setEditingCategory(selected.category || 'Economics');
       setQuarterlyTargets({
         Q1: 0,
         Q2: 0,
@@ -91,6 +95,7 @@ export default function KPIForm({
 
     const updatedKPI = {
       ...selectedKPI,
+      category: editingCategory,
       quarterlyTargets,
       target: quarterlyTargets.Year, // Use yearly target as the main target
     };
@@ -260,6 +265,39 @@ export default function KPIForm({
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* EPICG Category Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              EPICG Category
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {KPI_CATEGORY_ORDER.map((categoryId) => {
+                const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                return (
+                  <button
+                    key={categoryId}
+                    type="button"
+                    onClick={() => setEditingCategory(categoryId)}
+                    className={`p-4 border rounded-lg text-center transition-all duration-200 ${
+                      editingCategory === categoryId
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+                      <span className="text-white font-bold text-sm">{category.shortForm}</span>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">{category.label}</div>
+                    <div className="text-xs text-gray-500">({category.shortForm})</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-sm text-gray-600">
+              Selected: <span className="font-medium">{editingCategory}</span>
             </div>
           </div>
 

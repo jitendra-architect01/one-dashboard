@@ -255,6 +255,7 @@ export const useSupabaseData = (): SupabaseData => {
         
         // Only update fields that exist in the database schema
         if (updates.target !== undefined) dbUpdates.target_value = updates.target;
+        if (updates.category !== undefined) dbUpdates.category = updates.category;
         if (updates.isVisibleOnDashboard !== undefined)
           dbUpdates.is_visible_on_dashboard = updates.isVisibleOnDashboard;
         if (updates.unit !== undefined) dbUpdates.unit = updates.unit;

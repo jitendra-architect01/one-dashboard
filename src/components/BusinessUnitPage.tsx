@@ -420,7 +420,7 @@ export default function BusinessUnitPage({
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {categoryKPIs.map((kpi) => {
                       const aggregatedKPI = getAggregatedKPIData(kpi);
                       return (
@@ -443,7 +443,7 @@ export default function BusinessUnitPage({
             
             {/* Show message if no KPIs exist */}
             {kpis.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="text-center py-8 bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calendar className="w-8 h-8 text-gray-400" />
                 </div>
@@ -465,7 +465,7 @@ export default function BusinessUnitPage({
                 Showing: <span className="font-medium text-gray-900">{selectedKPI.name}</span>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-1">

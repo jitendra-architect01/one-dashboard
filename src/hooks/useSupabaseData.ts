@@ -165,7 +165,7 @@ export const useSupabaseData = (): SupabaseData => {
                       : action.priority === "medium"
                       ? "Medium"
                       : "Low",
-                  team: "General",
+                  team: action.department || action.tags?.[0] || "General",
                 }));
 
               return {
@@ -310,7 +310,10 @@ export const useSupabaseData = (): SupabaseData => {
       try {
         const dbUpdates: any = {};
         if (updates.action !== undefined) dbUpdates.title = updates.action;
-        if (updates.owner !== undefined) dbUpdates.assigned_to = updates.owner;
+        if (updates.owner !== undefined) {
+          // Store the full name in assigned_to field
+          dbUpdates.assigned_to = updates.owner;
+        }
         if (updates.status !== undefined) {
           const statusMap: Record<string, string> = {
             'Not Started': 'not_started',
@@ -329,7 +332,10 @@ export const useSupabaseData = (): SupabaseData => {
           };
           dbUpdates.priority = priorityMap[updates.priority] || updates.priority;
         }
-        if (updates.team !== undefined) dbUpdates.team = updates.team;
+        if (updates.team !== undefined) {
+          // Store team in tags array for now (since there's no dedicated team field)
+          dbUpdates.tags = [updates.team];
+        }
 
         await DataService.updateActionItem(actionItemId, dbUpdates);
 
@@ -465,8 +471,8 @@ export const useSupabaseData = (): SupabaseData => {
                 priority: actionItem.priority === "High" ? "high" :
                           actionItem.priority === "Medium" ? "medium" : "low",
                 due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
-                assigned_to: null, // Will be set when we have user management
-                tags: [],
+                assigned_to: actionItem.owner !== "Unassigned" ? actionItem.owner : null,
+                tags: actionItem.team !== "General" ? [actionItem.team] : [],
                 dependencies: [],
                 attachments: [],
                 comments: []
@@ -553,8 +559,8 @@ export const useSupabaseData = (): SupabaseData => {
                   priority: actionItem.priority === "High" ? "high" :
                             actionItem.priority === "Medium" ? "medium" : "low",
                   due_date: actionItem.dueDate !== "No due date" ? actionItem.dueDate : null,
-                  assigned_to: null,
-                  tags: [],
+                  assigned_to: actionItem.owner !== "Unassigned" ? actionItem.owner : null,
+                  tags: actionItem.team !== "General" ? [actionItem.team] : [],
                   dependencies: [],
                   attachments: [],
                   comments: []

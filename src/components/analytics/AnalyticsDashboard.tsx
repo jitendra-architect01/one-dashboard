@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AdvancedChart from './AdvancedChart';
 import { useData } from '../../context/DataContext';
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from '../../types/data';
 import { 
   Filter, 
   Download, 
@@ -9,46 +10,82 @@ import {
   TrendingUp,
   AlertTriangle,
   Target,
-  BarChart3
+  BarChart3,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 interface FilterState {
   dateRange: string;
   businessUnit: string;
-  kpiCategory: string;
+  epicgCategory: string;
 }
 
 export default function AnalyticsDashboard() {
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'last12months',
     businessUnit: 'all',
-    kpiCategory: 'all'
+    epicgCategory: 'all'
   });
   
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
   const { getAllKPIs, businessUnitsArray } = useData();
   
+  const [focusedChart, setFocusedChart] = useState<string | null>(null);
+  
   const allKPIs = getAllKPIs();
 
-  // Generate sample analytics data
+  // Function to get chart color based on attainment percentage
+  const getChartColorByAttainment = (current: number, target: number) => {
+    if (target === 0) return '#6B7280'; // Gray for invalid targets
+    
+    const attainmentPercentage = (current / target) * 100;
+    
+    if (attainmentPercentage >= 95) {
+      return '#10B981'; // Green
+    } else if (attainmentPercentage >= 75) {
+      return '#F59E0B'; // Amber
+    } else {
+      return '#EF4444'; // Red
+    }
+  };
+
+  // Generate analytics data from actual KPI monthly data or realistic trends
   const generateAnalyticsData = (kpi: any) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.map((month, index) => {
-      const baseValue = kpi.current;
-      const variance = (Math.random() - 0.5) * baseValue * 0.3;
-      const trendFactor = kpi.trend === 'up' ? 1.05 : kpi.trend === 'down' ? 0.95 : 1;
-      
-      return {
+    
+    // Use actual monthly data if available, otherwise generate realistic data
+    if (kpi.monthlyData && kpi.monthlyData.length === 12) {
+      return months.map((month, index) => ({
         name: month,
-        value: Math.round(baseValue * Math.pow(trendFactor, index) + variance),
+        value: kpi.monthlyData[index] || 0,
         target: kpi.target,
-        previous: Math.round(baseValue * Math.pow(trendFactor, index - 1) + variance * 0.8)
-      };
-    });
+        previous: index > 0 ? kpi.monthlyData[index - 1] : kpi.monthlyData[index]
+      }));
+    } else {
+      // Generate realistic trend data based on actual KPI values
+      const baseValue = kpi.current;
+      const trendFactor = kpi.trend === 'up' ? 1.02 : kpi.trend === 'down' ? 0.98 : 1;
+      
+      return months.map((month, index) => {
+        const seasonality = Math.sin((index / 12) * 2 * Math.PI) * baseValue * 0.05;
+        const growth = baseValue * Math.pow(trendFactor, index) - baseValue;
+        const noise = (Math.random() - 0.5) * baseValue * 0.02;
+        const value = Math.max(0, Math.round(baseValue + growth + seasonality + noise));
+        
+        return {
+          name: month,
+          value: value,
+          target: kpi.target,
+          previous: index > 0 ? Math.round(baseValue * Math.pow(trendFactor, index - 1)) : value
+        };
+      });
+    }
   };
 
   const filteredKPIs = allKPIs.filter(kpi => {
     if (filters.businessUnit !== 'all' && kpi.businessUnit !== filters.businessUnit) return false;
+    if (filters.epicgCategory !== 'all' && kpi.category !== filters.epicgCategory) return false;
     return true;
   });
 
@@ -56,12 +93,16 @@ export default function AnalyticsDashboard() {
     const insights = [];
     const performingWell = filteredKPIs.filter(kpi => (kpi.current / kpi.target) >= 1).length;
     const needsAttention = filteredKPIs.filter(kpi => (kpi.current / kpi.target) < 0.8).length;
+    const onTrack = filteredKPIs.filter(kpi => {
+      const percentage = (kpi.current / kpi.target) * 100;
+      return percentage >= 80 && percentage < 100;
+    }).length;
     
     insights.push({
-      type: 'success',
-      title: 'Performing Well',
-      value: performingWell,
-      description: 'KPIs meeting or exceeding targets'
+      type: 'info',
+      title: 'Total KPIs',
+      value: filteredKPIs.length,
+      description: filters.epicgCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'
     });
     
     insights.push({
@@ -70,8 +111,26 @@ export default function AnalyticsDashboard() {
       value: needsAttention,
       description: 'KPIs significantly below target'
     });
+    
+    insights.push({
+      type: 'info',
+      title: 'On Track',
+      value: onTrack,
+      description: 'KPIs within 80-99% of target'
+    });
+    
+    insights.push({
+      type: 'success',
+      title: 'Performing Well',
+      value: performingWell,
+      description: 'KPIs meeting or exceeding targets'
+    });
 
     return insights;
+  };
+
+  const toggleFocusMode = (kpiKey: string) => {
+    setFocusedChart(prev => prev === kpiKey ? null : kpiKey);
   };
 
   const insights = getPerformanceInsights();
@@ -83,7 +142,7 @@ export default function AnalyticsDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Advanced Analytics</h1>
-            <p className="text-lg text-gray-600">Comprehensive KPI analysis and insights</p>
+            <p className="text-lg text-gray-600">Real-time KPI analysis with EPICG categorization</p>
           </div>
           <div className="flex items-center space-x-3">
             <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -131,18 +190,50 @@ export default function AnalyticsDashboard() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">KPI Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">EPICG Category</label>
                 <select
-                  value={filters.kpiCategory}
-                  onChange={(e) => setFilters(prev => ({ ...prev, kpiCategory: e.target.value }))}
+                  value={filters.epicgCategory}
+                  onChange={(e) => setFilters(prev => ({ ...prev, epicgCategory: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="revenue">Revenue</option>
-                  <option value="performance">Performance</option>
-                  <option value="quality">Quality</option>
+                  <option value="all">All EPICG Categories</option>
+                  {KPI_CATEGORY_ORDER.map(categoryId => {
+                    const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                    return (
+                      <option key={categoryId} value={categoryId}>
+                        {category.label} ({category.shortForm})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
+            </div>
+          </div>
+          
+          {/* Filter Summary */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div>
+                Showing <span className="font-medium text-gray-900">{filteredKPIs.length}</span> of <span className="font-medium text-gray-900">{allKPIs.length}</span> KPIs
+                {filters.epicgCategory !== 'all' && (
+                  <span className="ml-2">
+                    • <span className="font-medium">{KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label}</span> category
+                  </span>
+                )}
+                {filters.businessUnit !== 'all' && (
+                  <span className="ml-2">
+                    • <span className="font-medium">{businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}</span> unit
+                  </span>
+                )}
+              </div>
+              {(filters.businessUnit !== 'all' || filters.epicgCategory !== 'all') && (
+                <button
+                  onClick={() => setFilters({ dateRange: 'last12months', businessUnit: 'all', epicgCategory: 'all' })}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -158,10 +249,13 @@ export default function AnalyticsDashboard() {
                   <p className="text-xs text-gray-500 mt-1">{insight.description}</p>
                 </div>
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  insight.type === 'success' ? 'bg-green-100' : 'bg-yellow-100'
+                  insight.type === 'success' ? 'bg-green-100' : 
+                  insight.type === 'info' ? 'bg-blue-100' : 'bg-yellow-100'
                 }`}>
                   {insight.type === 'success' ? (
                     <Target className="w-6 h-6 text-green-600" />
+                  ) : insight.type === 'info' ? (
+                    <BarChart3 className="w-6 h-6 text-blue-600" />
                   ) : (
                     <AlertTriangle className="w-6 h-6 text-yellow-600" />
                   )}
@@ -169,117 +263,144 @@ export default function AnalyticsDashboard() {
               </div>
             </div>
           ))}
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total KPIs</p>
-                <p className="text-3xl font-bold text-gray-900">{filteredKPIs.length}</p>
-                <p className="text-xs text-gray-500 mt-1">Across all units</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
+        </div>
+
+        {/* KPIs by EPICG Category */}
+        {filters.epicgCategory !== 'all' ? (
+          <div className="space-y-8">
+            {/* Selected Category Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center space-x-4">
+                <div className={`w-12 h-12 ${KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.color} rounded-lg flex items-center justify-center`}>
+                  <span className="text-white font-bold text-lg">
+                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.shortForm}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} KPIs
+                  </h2>
+                  <p className="text-gray-600">
+                    {filteredKPIs.length} KPIs in this category
+                    {filters.businessUnit !== 'all' && ` • ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}
+                  </p>
+                </div>
               </div>
             </div>
+
+            {/* Charts for Selected Category */}
+            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+              {filteredKPIs.map((kpi, index) => {
+                const chartTypes = ['line', 'bar', 'area'];
+                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
+                const isFocused = focusedChart === kpiKey;
+                
+                // If there's a focused chart and this isn't it, don't render
+                if (focusedChart && !isFocused) return null;
+                
+                return (
+                  <AdvancedChart
+                    key={kpiKey}
+                    data={generateAnalyticsData(kpi)}
+                    type={chartType}
+                    title={`${kpi.name} (${kpi.businessUnitName})`}
+                    kpiUnit={kpi.unit}
+                    color={getChartColorByAttainment(kpi.current, kpi.target)}
+                    height={isFocused ? 400 : 250}
+                    showComparison={true}
+                    showTrend={true}
+                    isFocused={isFocused}
+                    onToggleFocus={() => toggleFocusMode(kpiKey)}
+                  />
+                );
+              })}
+            </div>
+
+            {filteredKPIs.length === 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
+                <p className="text-gray-600">
+                  No KPIs found for the selected {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} category
+                  {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Advanced Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {filteredKPIs.slice(0, 6).map((kpi, index) => {
-            const chartTypes = ['line', 'bar', 'area'];
-            const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
-            
-            return (
-              <AdvancedChart
-                key={`${kpi.businessUnit}-${kpi.id}`}
-                data={generateAnalyticsData(kpi)}
-                type={chartType}
-                title={kpi.name}
-                kpiUnit={kpi.unit}
-                color={kpi.color.replace('bg-', '').includes('blue') ? '#3B82F6' :
-                       kpi.color.replace('bg-', '').includes('green') ? '#10B981' :
-                       kpi.color.replace('bg-', '').includes('purple') ? '#8B5CF6' :
-                       kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
-                       kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
-                       kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                height={300}
-                showComparison={true}
-                showTrend={true}
-              />
-            );
-          })}
-        </div>
-
-        {/* Detailed Analysis Section */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Performance Analysis</h2>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">KPI Performance Overview</h3>
-              <div className="space-y-4">
-                {filteredKPIs.slice(0, 5).map((kpi) => {
-                  const percentage = (kpi.current / kpi.target) * 100;
-                  const isOnTrack = percentage >= 100;
-                  const isAtRisk = percentage < 80;
+        ) : (
+          <div className="space-y-8">
+            {/* All Categories Overview */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">KPIs by EPICG Category</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {KPI_CATEGORY_ORDER.map(categoryId => {
+                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  const categoryKPIs = filteredKPIs.filter(kpi => kpi.category === categoryId);
                   
                   return (
-                    <div key={`${kpi.businessUnit}-${kpi.id}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <div className={`w-3 h-3 rounded-full ${kpi.color}`} />
-                          <h4 className="font-medium text-gray-900">{kpi.name}</h4>
-                          <span className="text-xs text-gray-500">{kpi.businessUnitName}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              isOnTrack ? 'bg-green-500' : isAtRisk ? 'bg-red-500' : 'bg-yellow-500'
-                            }`}
-                            style={{ width: `${Math.min(percentage, 100)}%` }}
-                          />
-                        </div>
+                    <div key={categoryId} className="bg-gray-50 rounded-lg p-4">
+                      <div className={`w-10 h-10 ${category.color} rounded-lg flex items-center justify-center mb-3`}>
+                        <span className="text-white font-bold text-sm">
+                          {category.shortForm}
+                        </span>
                       </div>
-                      <div className="ml-4 text-right">
-                        <div className="text-lg font-semibold text-gray-900">
-                          {kpi.current.toLocaleString()}{kpi.unit}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Target: {kpi.target.toLocaleString()}{kpi.unit}
-                        </div>
-                        <div className={`text-sm font-medium ${
-                          isOnTrack ? 'text-green-600' : isAtRisk ? 'text-red-600' : 'text-yellow-600'
-                        }`}>
-                          {percentage.toFixed(0)}%
-                        </div>
-                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1">{category.label}</h3>
+                      <p className="text-2xl font-bold text-gray-900">{categoryKPIs.length}</p>
+                      <p className="text-xs text-gray-500">KPIs in category</p>
                     </div>
                   );
                 })}
               </div>
             </div>
-            
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full text-left p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
-                  <div className="font-medium text-blue-900">Generate Report</div>
-                  <div className="text-sm text-blue-700">Create comprehensive analytics report</div>
-                </button>
-                <button className="w-full text-left p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
-                  <div className="font-medium text-green-900">Set Alerts</div>
-                  <div className="text-sm text-green-700">Configure performance notifications</div>
-                </button>
-                <button className="w-full text-left p-3 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
-                  <div className="font-medium text-purple-900">Forecast Analysis</div>
-                  <div className="text-sm text-purple-700">Predict future performance trends</div>
-                </button>
-              </div>
+
+            {/* Charts for All Categories */}
+            <div className={`grid gap-6 ${focusedChart ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+              {filteredKPIs.map((kpi, index) => {
+                const chartTypes = ['line', 'bar', 'area'];
+                const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
+                const kpiKey = `${kpi.businessUnit}-${kpi.id}`;
+                const isFocused = focusedChart === kpiKey;
+                
+                // If there's a focused chart and this isn't it, don't render
+                if (focusedChart && !isFocused) return null;
+                
+                return (
+                  <AdvancedChart
+                    key={kpiKey}
+                    data={generateAnalyticsData(kpi)}
+                    type={chartType}
+                    title={`${kpi.name} (${kpi.businessUnitName})`}
+                    kpiUnit={kpi.unit}
+                    color={getChartColorByAttainment(kpi.current, kpi.target)}
+                    height={isFocused ? 400 : 250}
+                    showComparison={true}
+                    showTrend={true}
+                    isFocused={isFocused}
+                    onToggleFocus={() => toggleFocusMode(kpiKey)}
+                  />
+                );
+              })}
             </div>
+
+            {filteredKPIs.length === 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BarChart3 className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
+                <p className="text-gray-600">
+                  No KPIs found for the current filters
+                  {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
+                

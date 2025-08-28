@@ -123,7 +123,7 @@ export default function TrendlineChart({ kpiName, kpiUnit, kpiColor, monthlyData
   };
 
   return (
-    <div className="h-80 w-full">
+    <div className="h-64 w-full">
       <Bar data={data} options={options} />
     </div>
   );

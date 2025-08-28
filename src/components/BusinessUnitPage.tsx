@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Calendar, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, Edit3, Save, X, AlertTriangle, Circle } from "lucide-react";
+import { Calendar, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, Edit3, Save, X, AlertTriangle, Circle, Filter, Search } from "lucide-react";
 import { useData } from "../context/DataContext";
 import type { KPIData } from "../hooks/useSupabaseData";
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from "../types/data";
 import KPICard from "./KPICard";
 import InitiativeSection from "./InitiativeSection";
 import TrendlineChart from "./TrendlineChart";
@@ -169,6 +170,15 @@ export default function BusinessUnitPage({
   const [expandedInitiatives, setExpandedInitiatives] = useState<number[]>([]);
   const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
   const [selectedKPIForTrend, setSelectedKPIForTrend] = useState<string>("");
+  const [actionItemFilters, setActionItemFilters] = useState({
+    owner: '',
+    priority: '',
+    status: '',
+    dueDateFrom: '',
+    dueDateTo: '',
+    search: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
   const { businessUnits, updateActionItem } = useData();
 
   const businessUnit =
@@ -286,6 +296,57 @@ export default function BusinessUnitPage({
     }))
   );
 
+  // Filter action items based on filter criteria
+  const filteredActionItems = allActionItems.filter(item => {
+    // Search filter
+    if (actionItemFilters.search && !item.action.toLowerCase().includes(actionItemFilters.search.toLowerCase())) {
+      return false;
+    }
+    
+    // Owner filter
+    if (actionItemFilters.owner && item.owner !== actionItemFilters.owner) {
+      return false;
+    }
+    
+    // Priority filter
+    if (actionItemFilters.priority && item.priority !== actionItemFilters.priority) {
+      return false;
+    }
+    
+    // Status filter
+    if (actionItemFilters.status && item.status !== actionItemFilters.status) {
+      return false;
+    }
+    
+    // Due date range filter
+    if (actionItemFilters.dueDateFrom || actionItemFilters.dueDateTo) {
+      const itemDate = new Date(item.dueDate);
+      const fromDate = actionItemFilters.dueDateFrom ? new Date(actionItemFilters.dueDateFrom) : null;
+      const toDate = actionItemFilters.dueDateTo ? new Date(actionItemFilters.dueDateTo) : null;
+      
+      if (fromDate && itemDate < fromDate) return false;
+      if (toDate && itemDate > toDate) return false;
+    }
+    
+    return true;
+  });
+
+  // Get unique values for filter dropdowns
+  const uniqueOwners = [...new Set(allActionItems.map(item => item.owner))].sort();
+  const uniquePriorities = ['High', 'Medium', 'Low'];
+  const uniqueStatuses = ['Not Started', 'In Progress', 'Completed', 'Overdue'];
+
+  const clearFilters = () => {
+    setActionItemFilters({
+      owner: '',
+      priority: '',
+      status: '',
+      dueDateFrom: '',
+      dueDateTo: '',
+      search: ''
+    });
+  };
+
   // Get status icon and color for action items
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -399,22 +460,57 @@ export default function BusinessUnitPage({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {kpis.map((kpi) => {
-              const aggregatedKPI = getAggregatedKPIData(kpi);
+          {/* KPIs organized by EPICG categories */}
+          <div className="space-y-8">
+            {KPI_CATEGORY_ORDER.map((categoryId) => {
+              const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+              const categoryKPIs = kpis.filter(kpi => kpi.category === categoryId);
+              
+              if (categoryKPIs.length === 0) return null;
+              
               return (
-                <div 
-                  key={kpi.id} 
-                  onClick={() => handleKPIClick(kpi.id)}
-                  className="cursor-pointer"
-                >
-                  <KPICard 
-                    kpi={aggregatedKPI} 
-                    isSelected={kpi.id === selectedKPIForTrend}
-                  />
+                <div key={categoryId} className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 ${category.color} rounded-lg flex items-center justify-center`}>
+                      <span className="text-white font-bold text-sm">{category.shortForm}</span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{category.label}</h3>
+                      <p className="text-sm text-gray-600">{categoryKPIs.length} KPIs</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {categoryKPIs.map((kpi) => {
+                      const aggregatedKPI = getAggregatedKPIData(kpi);
+                      return (
+                        <div 
+                          key={kpi.id} 
+                          onClick={() => handleKPIClick(kpi.id)}
+                          className="cursor-pointer"
+                        >
+                          <KPICard 
+                            kpi={aggregatedKPI} 
+                            isSelected={kpi.id === selectedKPIForTrend}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
+            
+            {/* Show message if no KPIs exist */}
+            {kpis.length === 0 && (
+              <div className="text-center py-8 bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Available</h3>
+                <p className="text-gray-600">Add KPIs through the admin panel to see them organized by EPICG categories.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -429,7 +525,7 @@ export default function BusinessUnitPage({
                 Showing: <span className="font-medium text-gray-900">{selectedKPI.name}</span>
               </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-1">
@@ -482,9 +578,129 @@ export default function BusinessUnitPage({
 
         {/* 4. Action Item Tracker */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Action Item Tracker
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Action Item Tracker
+            </h2>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">
+                {filteredActionItems.length} of {allActionItems.length} items
+              </span>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  showFilters 
+                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {/* Search */}
+                <div className="xl:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Search Actions
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={actionItemFilters.search}
+                      onChange={(e) => setActionItemFilters(prev => ({ ...prev, search: e.target.value }))}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Search by action description..."
+                    />
+                  </div>
+                </div>
+
+                {/* Owner Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Owner
+                  </label>
+                  <select
+                    value={actionItemFilters.owner}
+                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, owner: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Owners</option>
+                    {uniqueOwners.map(owner => (
+                      <option key={owner} value={owner}>{owner}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Priority Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={actionItemFilters.priority}
+                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, priority: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Priorities</option>
+                    {uniquePriorities.map(priority => (
+                      <option key={priority} value={priority}>{priority}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={actionItemFilters.status}
+                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Statuses</option>
+                    {uniqueStatuses.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Due Date Range */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Date From
+                  </label>
+                  <input
+                    type="date"
+                    value={actionItemFilters.dueDateFrom}
+                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, dueDateFrom: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Filter Actions */}
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Showing {filteredActionItems.length} of {allActionItems.length} action items
+                </div>
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          )}
+
           {allActionItems.length > 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
@@ -515,7 +731,7 @@ export default function BusinessUnitPage({
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {allActionItems.map((item, index) => (
+                    {filteredActionItems.map((item, index) => (
                       <EditableActionItem
                         key={`${item.initiativeTitle}-${index}`}
                         item={item}
@@ -527,6 +743,22 @@ export default function BusinessUnitPage({
                   </tbody>
                 </table>
               </div>
+              
+              {filteredActionItems.length === 0 && allActionItems.length > 0 && (
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No matching action items</h3>
+                  <p className="text-gray-600 mb-4">Try adjusting your filter criteria to see more results.</p>
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">

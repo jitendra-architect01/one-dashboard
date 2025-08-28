@@ -63,6 +63,13 @@ const businessUnitConfig = {
     description:
       "Talent acquisition, retention metrics, and organizational development",
   },
+  general_administrative: {
+    icon: UserCheck,
+    color: "bg-gradient-to-br from-gray-500 to-gray-600",
+    path: "/general-administrative",
+    description:
+      "Administrative functions, compliance, and operational support",
+  },
 };
 
 export default function Dashboard() {
@@ -415,89 +422,6 @@ export default function Dashboard() {
                 </Link>
               );
             })}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Recent Activity
-            </h2>
-            <span className="text-sm text-gray-500">Last 24 hours</span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  Sales ARR target exceeded by 12%
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Q4 2025 performance update - Year 1 ARR now at $2.85M vs
-                  $2.54M target
-                </p>
-                <span className="text-xs text-gray-500 mt-2 block">
-                  2 hours ago
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg border border-green-100">
-              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <Megaphone className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  Marketing SQLs generation on track
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Q4 2025 milestone achieved - 145 SQLs generated vs 180 target
-                </p>
-                <span className="text-xs text-gray-500 mt-2 block">
-                  4 hours ago
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-              <div className="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <Code className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  Product feature delivery behind schedule
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  28 features delivered vs 32 target - Action items created for
-                  recovery plan
-                </p>
-                <span className="text-xs text-gray-500 mt-2 block">
-                  6 hours ago
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-4 p-4 bg-teal-50 rounded-lg border border-teal-100">
-              <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <HeadphonesIcon className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">
-                  Customer Success NRR improvement
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Net Revenue Retention increased to 108% - approaching 110%
-                  target
-                </p>
-                <span className="text-xs text-gray-500 mt-2 block">
-                  8 hours ago
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

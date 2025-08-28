@@ -2,9 +2,11 @@
 
 export const APP_CONFIG = {
   name: "One Dashboard",
-  version: "1.0.0",
+  version: "2.0.0",
   description:
     "Comprehensive business dashboard for tracking KPIs and initiatives",
+  releaseDate: "2025-02-08",
+  status: "Production Ready - Version 2.0 Enhanced",
 } as const;
 
 export const BUSINESS_UNITS = {
@@ -14,6 +16,7 @@ export const BUSINESS_UNITS = {
   CUSTOMER_SUCCESS: "customer_success",
   HUMAN_RESOURCES: "human_resources",
   PROFESSIONAL_SERVICES: "professional_services",
+  GENERAL_ADMINISTRATIVE: "general_administrative",
 } as const;
 
 export const BUSINESS_UNIT_NAMES = {
@@ -23,6 +26,7 @@ export const BUSINESS_UNIT_NAMES = {
   customer_success: "Customer Success",
   human_resources: "Human Resources",
   professional_services: "Professional Services",
+  general_administrative: "General & Administrative",
 } as const;
 
 export const USER_ROLES = {

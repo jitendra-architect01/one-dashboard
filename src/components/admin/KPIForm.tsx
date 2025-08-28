@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
 import type { KPIData } from '../../hooks/useSupabaseData';
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from '../../types/data';
 
 interface KPIFormData {
   name: string;
@@ -10,6 +11,7 @@ interface KPIFormData {
   period: string;
   trend: 'up' | 'down' | 'neutral';
   color?: string;
+  category: string;
   quarterlyTargets?: {
     Q1: number;
     Q2: number;
@@ -51,6 +53,7 @@ export default function KPIForm({
     unit: '',
     period: '',
     trend: 'neutral',
+    category: 'Economics', // Default to Economics
   });
   
   const [quarterlyTargets, setQuarterlyTargets] = useState({
@@ -61,10 +64,14 @@ export default function KPIForm({
     Year: kpi?.target || 0,
   });
 
+  // For editing existing KPIs - track category changes
+  const [editingCategory, setEditingCategory] = useState<string>('');
+
   const handleKPISelection = (kpiId: string) => {
     const selected = businessUnitKPIs.find((k) => k.id === kpiId);
     if (selected) {
       setSelectedKPI(selected);
+      setEditingCategory(selected.category || 'Economics');
       setQuarterlyTargets({
         Q1: 0,
         Q2: 0,
@@ -88,6 +95,7 @@ export default function KPIForm({
 
     const updatedKPI = {
       ...selectedKPI,
+      category: editingCategory,
       quarterlyTargets,
       target: quarterlyTargets.Year, // Use yearly target as the main target
     };
@@ -117,7 +125,8 @@ export default function KPIForm({
       period: formData.period,
       trend: formData.trend,
       color: formData.color || 'bg-blue-500',
-      isVisibleOnDashboard: false
+      isVisibleOnDashboard: false,
+      category: formData.category as any
     };
     
     onSave(kpiData);
@@ -194,6 +203,25 @@ export default function KPIForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => handleChange('category', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select category</option>
+                {Object.values(KPI_CATEGORIES).map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Period
               </label>
               <select
@@ -239,6 +267,7 @@ export default function KPIForm({
               </div>
             </div>
           </div>
+
 
           <div className="flex justify-end space-x-3 pt-4">
             <button
@@ -442,6 +471,37 @@ export default function KPIForm({
                   <div className="text-blue-700">{quarterlyTargets.Year.toLocaleString()}{selectedKPI.unit}</div>
                 </div>
               </div>
+            </div>
+
+            {/* EPICG Category Selection */}
+            <div className="mt-6 mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                EPICG Category
+              </label>
+              <select
+                value={editingCategory}
+                onChange={(e) => setEditingCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select EPICG Category</option>
+                {KPI_CATEGORY_ORDER.map((categoryId) => {
+                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  return (
+                    <option key={categoryId} value={categoryId}>
+                      {category.label} ({category.shortForm})
+                    </option>
+                  );
+                })}
+              </select>
+              {editingCategory && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Selected: <span className="font-medium">
+                    {KPI_CATEGORIES[editingCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} 
+                    ({KPI_CATEGORIES[editingCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.shortForm})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}

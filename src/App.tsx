@@ -9,12 +9,14 @@ import ProfessionalServicesPage from "./pages/ProfessionalServicesPage";
 import ProductEngineeringPage from "./pages/ProductEngineeringPage";
 import CustomerSuccessPage from "./pages/CustomerSuccessPage";
 import HumanResourcesPage from "./pages/HumanResourcesPage";
+import GeneralAdministrativePage from "./pages/GeneralAdministrativePage";
 import SalesAdminPage from "./pages/admin/SalesAdminPage";
 import MarketingAdminPage from "./pages/admin/MarketingAdminPage";
 import ProfessionalServicesAdminPage from "./pages/admin/ProfessionalServicesAdminPage";
 import ProductEngineeringAdminPage from "./pages/admin/ProductEngineeringAdminPage";
 import CustomerSuccessAdminPage from "./pages/admin/CustomerSuccessAdminPage";
 import HumanResourcesAdminPage from "./pages/admin/HumanResourcesAdminPage";
+import GeneralAdministrativeAdminPage from "./pages/admin/GeneralAdministrativeAdminPage";
 import CompanyWideKPIAdminPage from "./pages/admin/CompanyWideKPIAdminPage";
 import TrendlineAdminPage from "./pages/admin/TrendlineAdminPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
@@ -66,6 +68,7 @@ function App() {
           />
           <Route path="/customer-success" element={<CustomerSuccessPage />} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
+          <Route path="/general-administrative" element={<GeneralAdministrativePage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/data-flow" element={<DataFlowPage />} />
 
@@ -125,6 +128,14 @@ function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <HumanResourcesAdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/general-administrative/admin"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <GeneralAdministrativeAdminPage />
               </ProtectedRoute>
             }
           />

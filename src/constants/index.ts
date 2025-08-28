@@ -2,11 +2,11 @@
 
 export const APP_CONFIG = {
   name: "One Dashboard",
-  version: "1.0.0",
+  version: "2.0.0",
   description:
     "Comprehensive business dashboard for tracking KPIs and initiatives",
   releaseDate: "2025-02-08",
-  status: "Production Ready - Version 1.0 Baseline",
+  status: "Production Ready - Version 2.0 Enhanced",
 } as const;
 
 export const BUSINESS_UNITS = {

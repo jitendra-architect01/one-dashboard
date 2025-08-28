@@ -266,7 +266,7 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Charts for Selected Category */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {filteredKPIs.map((kpi, index) => {
                 const chartTypes = ['line', 'bar', 'area'];
                 const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
@@ -284,7 +284,7 @@ export default function AnalyticsDashboard() {
                            kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
                            kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
                            kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={300}
+                    height={200}
                     showComparison={true}
                     showTrend={true}
                   />
@@ -338,7 +338,7 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Sample Charts from All Categories */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {filteredKPIs.slice(0, 6).map((kpi, index) => {
                 const chartTypes = ['line', 'bar', 'area'];
                 const chartType = chartTypes[index % chartTypes.length] as 'line' | 'bar' | 'area';
@@ -356,7 +356,7 @@ export default function AnalyticsDashboard() {
                            kpi.color.replace('bg-', '').includes('orange') ? '#F97316' :
                            kpi.color.replace('bg-', '').includes('teal') ? '#14B8A6' :
                            kpi.color.replace('bg-', '').includes('pink') ? '#EC4899' : '#6B7280'}
-                    height={300}
+                    height={200}
                     showComparison={true}
                     showTrend={true}
                   />

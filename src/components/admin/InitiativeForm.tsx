@@ -183,7 +183,7 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       required
                       disabled={loadingEmployees}
-                    />
+                    >
                       {loadingEmployees ? (
                         <option value="">Loading employees...</option>
                       ) : employees.length === 0 ? (
@@ -211,7 +211,7 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       required
                       disabled={loadingEmployees}
-                    />
+                    >
                       {loadingEmployees ? (
                         <option value="">Loading teams...</option>
                       ) : teams.length === 0 ? (

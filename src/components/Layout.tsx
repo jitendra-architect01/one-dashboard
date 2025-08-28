@@ -63,6 +63,13 @@ const businessUnits = [
     color: "bg-pink-600",
     path: "/human-resources",
   },
+  {
+    id: "general-administrative",
+    name: "General & Administrative",
+    icon: UserCheck,
+    color: "bg-gray-600",
+    path: "/general-administrative",
+  },
 ];
 
 export default function Layout({ children }: LayoutProps) {

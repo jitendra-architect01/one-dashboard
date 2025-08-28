@@ -16,6 +16,7 @@ export const BUSINESS_UNITS = {
   CUSTOMER_SUCCESS: "customer_success",
   HUMAN_RESOURCES: "human_resources",
   PROFESSIONAL_SERVICES: "professional_services",
+  GENERAL_ADMINISTRATIVE: "general_administrative",
 } as const;
 
 export const BUSINESS_UNIT_NAMES = {
@@ -25,6 +26,7 @@ export const BUSINESS_UNIT_NAMES = {
   customer_success: "Customer Success",
   human_resources: "Human Resources",
   professional_services: "Professional Services",
+  general_administrative: "General & Administrative",
 } as const;
 
 export const USER_ROLES = {

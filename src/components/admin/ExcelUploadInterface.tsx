@@ -20,6 +20,7 @@ const businessUnitOptions = [
   { id: 'productEngineering', name: 'Product & Engineering' },
   { id: 'customerSuccess', name: 'Customer Success' },
   { id: 'humanResources', name: 'Human Resources' },
+  { id: 'generalAdministrative', name: 'General & Administrative' },
 ];
 
 export default function ExcelUploadInterface() {
@@ -481,6 +482,11 @@ export default function ExcelUploadInterface() {
           ['Total_Offers_Made', ...Array(monthCount).fill('0'), 'actual'],
           ['Total_Onboardings', ...Array(monthCount).fill('0'), 'actual'],
           ['Voluntary_Attrition', ...Array(monthCount).fill('0'), 'actual']
+        ],
+        generalAdministrative: [
+          ['Administrative_Efficiency', ...Array(monthCount).fill('0'), 'actual'],
+          ['Compliance_Score', ...Array(monthCount).fill('0'), 'actual'],
+          ['Cost_per_Employee', ...Array(monthCount).fill('0'), 'actual']
         ]
       };
       return samples[unit as keyof typeof samples] || samples.sales;

@@ -63,6 +63,13 @@ const businessUnitConfig = {
     description:
       "Talent acquisition, retention metrics, and organizational development",
   },
+  general_administrative: {
+    icon: UserCheck,
+    color: "bg-gradient-to-br from-gray-500 to-gray-600",
+    path: "/general-administrative",
+    description:
+      "Administrative functions, compliance, and operational support",
+  },
 };
 
 export default function Dashboard() {

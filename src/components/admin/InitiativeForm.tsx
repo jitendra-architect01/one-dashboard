@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, X, Plus, Trash2 } from 'lucide-react';
+import { Save, X, Plus, Trash2, Search, ChevronDown } from 'lucide-react';
 import { ActionItemData } from '../ActionItem';
 import { useAuth } from '../../context/AuthContext';
 
@@ -16,6 +16,97 @@ interface InitiativeFormProps {
   isEditing?: boolean;
 }
 
+interface SearchableSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+  className = ""
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredOptions = options.filter(option =>
+    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedOption = options.find(opt => opt.value === value);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-left flex items-center justify-between ${
+          disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white hover:bg-gray-50'
+        }`}
+      >
+        <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown className="w-4 h-4 text-gray-400" />
+      </button>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+          <div className="p-2 border-b border-gray-200">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search..."
+                className="w-full pl-8 pr-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500">No results found</div>
+            ) : (
+              filteredOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleSelect(option.value)}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                >
+                  {option.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
 export default function InitiativeForm({ initiative, onSave, onCancel, isEditing = false }: InitiativeFormProps) {
   const { listEmployeeProfiles } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
@@ -62,7 +153,7 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
 
   const addActionItem = () => {
     const newActionItem: ActionItemData = {
-      id: `temp-${Date.now()}`, // Mark as temporary
+      id: `temp-${Date.now().toString()}`, // Mark as temporary with string conversion
       action: '',
       owner: employees.length > 0 ? employees[0].first_name + ' ' + employees[0].last_name : '',
       status: 'Not Started',
@@ -92,6 +183,16 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
     }));
   };
 
+  // Prepare options for searchable selects
+  const employeeOptions = employees.map(emp => ({
+    value: `${emp.first_name} ${emp.last_name}`,
+    label: `${emp.first_name} ${emp.last_name} (${emp.employee_code})`
+  }));
+
+  const teamOptions = teams.map(team => ({
+    value: team,
+    label: team
+  }));
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -177,56 +278,28 @@ export default function InitiativeForm({ initiative, onSave, onCancel, isEditing
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Owner
                     </label>
-                    <select
+                    <SearchableSelect
                       value={actionItem.owner}
-                      onChange={(e) => updateActionItem(index, 'owner', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      required
-                      disabled={loadingEmployees}
-                    >
-                      {loadingEmployees ? (
-                        <option value="">Loading employees...</option>
-                      ) : employees.length === 0 ? (
-                        <option value="">No employees available</option>
-                      ) : (
-                        <>
-                          <option value="">Select owner</option>
-                          {employees.map(emp => (
-                            <option key={emp.id} value={`${emp.first_name} ${emp.last_name}`}>
-                              {emp.first_name} {emp.last_name} ({emp.employee_code})
-                            </option>
-                          ))}
-                        </>
-                      )}
-                    </select>
+                      onChange={(value) => updateActionItem(index, 'owner', value)}
+                      options={employeeOptions}
+                      placeholder={loadingEmployees ? "Loading employees..." : "Select owner"}
+                      disabled={loadingEmployees || employees.length === 0}
+                      className="w-full"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Team
                     </label>
-                    <select
+                    <SearchableSelect
                       value={actionItem.team}
-                      onChange={(e) => updateActionItem(index, 'team', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      required
-                      disabled={loadingEmployees}
-                    >
-                      {loadingEmployees ? (
-                        <option value="">Loading teams...</option>
-                      ) : teams.length === 0 ? (
-                        <option value="">No teams available</option>
-                      ) : (
-                        <>
-                          <option value="">Select team</option>
-                          {teams.map(team => (
-                            <option key={team} value={team}>
-                              {team}
-                            </option>
-                          ))}
-                        </>
-                      )}
-                    </select>
+                      onChange={(value) => updateActionItem(index, 'team', value)}
+                      options={teamOptions}
+                      placeholder={loadingEmployees ? "Loading teams..." : "Select team"}
+                      disabled={loadingEmployees || teams.length === 0}
+                      className="w-full"
+                    />
                   </div>
 
                   <div>

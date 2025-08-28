@@ -1,0 +1,18 @@
+
+> vite-react-typescript-starter@0.0.0 dev
+> vite
+
+
+  VITE v5.4.19  ready in 892 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+11:51:37 PM [vite] hmr update /src/context/AuthContext.tsx, /src/index.css, /src/components/admin/EmployeeManagement.tsx
+12:10:26 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css
+12:10:28 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css
+12:14:13 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css
+12:14:14 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css
+12:16:12 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css
+12:26:41 AM [vite] hmr update /src/context/AuthContext.tsx, /src/index.css, /src/components/admin/EmployeeManagement.tsx
+12:26:47 AM [vite] hmr update /src/components/admin/ExcelUploadInterface.tsx, /src/index.css

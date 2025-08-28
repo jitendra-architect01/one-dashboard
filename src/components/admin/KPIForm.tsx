@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Save, X } from 'lucide-react';
 import type { KPIData } from '../../hooks/useSupabaseData';
+import { KPI_CATEGORIES } from '../../types/data';
 
 interface KPIFormData {
   name: string;
@@ -10,6 +11,7 @@ interface KPIFormData {
   period: string;
   trend: 'up' | 'down' | 'neutral';
   color?: string;
+  category: string;
   quarterlyTargets?: {
     Q1: number;
     Q2: number;
@@ -51,6 +53,7 @@ export default function KPIForm({
     unit: '',
     period: '',
     trend: 'neutral',
+    category: 'Economics', // Default to Economics
   });
   
   const [quarterlyTargets, setQuarterlyTargets] = useState({
@@ -117,7 +120,8 @@ export default function KPIForm({
       period: formData.period,
       trend: formData.trend,
       color: formData.color || 'bg-blue-500',
-      isVisibleOnDashboard: false
+      isVisibleOnDashboard: false,
+      category: formData.category as any
     };
     
     onSave(kpiData);

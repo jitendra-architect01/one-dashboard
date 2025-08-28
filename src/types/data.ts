@@ -4,6 +4,13 @@ export type KPIPeriod = "monthly" | "quarterly" | "yearly";
 
 export type KPICategory = "Economics" | "People" | "Innovation" | "Customer" | "Growth";
 
+export const KPI_CATEGORIES = {
+  ECONOMICS: { id: "Economics", label: "Economics (E)", shortForm: "E" },
+  PEOPLE: { id: "People", label: "People (P)", shortForm: "P" },
+  INNOVATION: { id: "Innovation", label: "Innovation (I)", shortForm: "I" },
+  CUSTOMER: { id: "Customer", label: "Customer (C)", shortForm: "C" },
+  GROWTH: { id: "Growth", label: "Growth (G)", shortForm: "G" },
+} as const;
 export interface KPIData {
   id: string;
   name: string;
@@ -16,6 +23,7 @@ export interface KPIData {
   isVisibleOnDashboard: boolean;
   businessUnit: string;
   businessUnitName: string;
+  category?: KPICategory;
 }
 
 export interface ActionItemData {

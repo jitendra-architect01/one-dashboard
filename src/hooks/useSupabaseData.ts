@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DataService } from "../services/dataService";
 import { getMockKPIs, getMockInitiatives } from "../services/mockDataService";
 import type { KPIDefinition, Initiative } from "../lib/supabase";
+import type { KPICategory } from "../types/data";
 
 // Frontend-friendly data interfaces
 export interface KPIData {
@@ -17,6 +18,7 @@ export interface KPIData {
   businessUnit: string;
   businessUnitName: string;
   monthlyData?: number[];
+  category?: KPICategory;
 }
 
 export interface ActionItemData {
@@ -132,6 +134,7 @@ export const useSupabaseData = (): SupabaseData => {
               isVisibleOnDashboard: kpi.is_visible_on_dashboard || false,
               businessUnit: bu.code,
               businessUnitName: bu.name,
+              category: (kpi.category as KPICategory) || "Economics", // Default to Economics for existing KPIs
             }));
 
           // Get initiatives for this business unit

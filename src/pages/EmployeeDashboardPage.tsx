@@ -1,35 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import { Navigate } from 'react-router-dom';
 import { 
   User, 
-  Target, 
   CheckCircle, 
   Clock, 
   AlertTriangle,
   Mail,
   Building,
   Users,
-  Award,
-  UserCheck,
-  Calendar,
-  TrendingUp,
   Briefcase,
-  Star
+  Star,
+  Calendar,
+  Edit3,
+  Save,
+  X,
+  Circle
 } from 'lucide-react';
-
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  targetDate: string;
-  progress: number;
-  status: 'active' | 'completed' | 'cancelled';
-  category?: 'performance' | 'development' | 'behavioral' | 'project';
-}
 
 interface Initiative {
   id: string;
@@ -53,15 +41,161 @@ interface ActionItem {
   initiative: string;
 }
 
+interface EditableActionItemProps {
+  item: {
+    id: string;
+    action: string;
+    owner: string;
+    status: "Not Started" | "In Progress" | "Completed" | "Overdue";
+    dueDate: string;
+    priority: "Low" | "Medium" | "High";
+    team: string;
+    initiativeTitle: string;
+  };
+  onUpdate: (id: string, updates: any) => Promise<void>;
+}
+
+const EditableActionItem: React.FC<EditableActionItemProps> = ({ item, onUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    status: item.status,
+    priority: item.priority,
+    dueDate: item.dueDate,
+  });
+
+  const handleSave = async () => {
+    try {
+      await onUpdate(item.id, editData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update action item:", error);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditData({
+      status: item.status,
+      priority: item.priority,
+      dueDate: item.dueDate,
+    });
+    setIsEditing(false);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case "In Progress":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "Overdue":
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      default:
+        return <Circle className="w-4 h-4 text-gray-400" />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-100 text-red-800";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <tr className="border-b hover:bg-gray-50">
+        <td className="px-6 py-4 text-sm text-gray-900">{item.action}</td>
+        <td className="px-6 py-4 text-sm text-gray-900">{item.initiativeTitle}</td>
+        <td className="px-6 py-4 text-sm">
+          <select
+            value={editData.status}
+            onChange={(e) => setEditData({ ...editData, status: e.target.value as any })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="Not Started">Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <select
+            value={editData.priority}
+            onChange={(e) => setEditData({ ...editData, priority: e.target.value as any })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <input
+            type="date"
+            value={editData.dueDate === "No due date" ? "" : editData.dueDate}
+            onChange={(e) => setEditData({ ...editData, dueDate: e.target.value || "No due date" })}
+            className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+          />
+        </td>
+        <td className="px-6 py-4 text-sm">
+          <div className="flex space-x-2">
+            <button
+              onClick={handleSave}
+              className="text-green-600 hover:text-green-800"
+              title="Save"
+            >
+              <Save className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="text-red-600 hover:text-red-800"
+              title="Cancel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-b hover:bg-gray-50">
+      <td className="px-6 py-4 text-sm text-gray-900">{item.action}</td>
+      <td className="px-6 py-4 text-sm text-gray-900">{item.initiativeTitle}</td>
+      <td className="px-6 py-4 text-sm">
+        <div className="flex items-center space-x-2">
+          {getStatusIcon(item.status)}
+          <span>{item.status}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm">
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}`}>
+          {item.priority}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-900">{item.dueDate}</td>
+      <td className="px-6 py-4 text-sm">
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-blue-600 hover:text-blue-800"
+          title="Edit"
+        >
+          <Edit3 className="w-4 h-4" />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
 export default function EmployeeDashboardPage() {
   const { user, isEmployee } = useAuth();
-  const [activeTab, setActiveTab] = useState<'about' | 'goals' | 'initiatives'>('about');
-  const [businessUnitGoals, setBusinessUnitGoals] = useState<Goal[]>([]);
-  const [teamGoals, setTeamGoals] = useState<Goal[]>([]);
-  const [personalGoals, setPersonalGoals] = useState<Goal[]>([]);
-  const [businessUnitInitiatives, setBusinessUnitInitiatives] = useState<Initiative[]>([]);
-  const [teamInitiatives, setTeamInitiatives] = useState<Initiative[]>([]);
-  const [myActions, setMyActions] = useState<ActionItem[]>([]);
+  const { businessUnits, updateActionItem } = useData();
+  const [activeTab, setActiveTab] = useState<'about' | 'initiatives'>('about');
 
   // Redirect if not an employee
   if (!isEmployee || !user?.employeeProfile) {
@@ -70,152 +204,23 @@ export default function EmployeeDashboardPage() {
 
   const employeeProfile = user.employeeProfile;
 
-  // Load data based on employee's business unit and team
-  useEffect(() => {
-    // In production, these would be API calls to Supabase
-    // For now, using mock data that simulates database relationships
-    
-    // Business Unit Goals - Goals for the entire business unit
-    setBusinessUnitGoals([
-      {
-        id: '1',
-        title: 'Q1 Revenue Target',
-        description: 'Achieve $3.2M in revenue for Q1 2025',
-        targetValue: 3200000,
-        currentValue: 2850000,
-        unit: '$',
-        targetDate: '2025-03-31',
-        progress: 89,
-        status: 'active'
-      },
-      {
-        id: '2',
-        title: 'Customer Satisfaction',
-        description: 'Maintain customer satisfaction score above 4.5/5',
-        targetValue: 4.5,
-        currentValue: 4.3,
-        unit: '/5',
-        targetDate: '2025-03-31',
-        progress: 96,
-        status: 'active'
-      }
-    ]);
+  // Get employee's business unit data
+  const employeeBusinessUnit = Object.values(businessUnits).find(
+    bu => bu.name === employeeProfile.business_unit_name
+  );
 
-    // Team Goals - Goals specific to the employee's team
-    setTeamGoals([
-      {
-        id: '1',
-        title: 'Enterprise Deal Closure',
-        description: 'Close 15 enterprise deals this quarter',
-        targetValue: 15,
-        currentValue: 12,
-        unit: 'deals',
-        targetDate: '2025-03-31',
-        progress: 80,
-        status: 'active'
-      }
-    ]);
+  // Get initiatives from employee's business unit
+  const businessUnitInitiatives = employeeBusinessUnit?.initiatives || [];
 
-    // Personal Goals - Individual employee goals
-    setPersonalGoals([
-      {
-        id: '1',
-        title: 'Personal Sales Target',
-        description: 'Achieve $500K in personal sales for Q1 2025',
-        targetValue: 500000,
-        currentValue: 420000,
-        unit: '$',
-        targetDate: '2025-03-31',
-        progress: 84,
-        status: 'active',
-        category: 'performance'
-      },
-      {
-        id: '2',
-        title: 'Sales Training Certification',
-        description: 'Complete advanced sales methodology training',
-        targetValue: 100,
-        currentValue: 75,
-        unit: '%',
-        targetDate: '2025-02-28',
-        progress: 75,
-        status: 'active',
-        category: 'development'
-      }
-    ]);
-
-    // Business Unit Initiatives - Strategic initiatives for the business unit
-    setBusinessUnitInitiatives([
-      {
-        id: '1',
-        title: 'Pipeline Acceleration Program',
-        description: 'Focused initiative to accelerate deal velocity and increase pipeline conversion',
-        status: 'active',
-        priority: 'high',
-        completionPercentage: 65,
-        targetDate: '2025-04-30'
-      },
-      {
-        id: '2',
-        title: 'New Logo Acquisition Strategy',
-        description: 'Comprehensive approach to increase new customer acquisition rates',
-        status: 'active',
-        priority: 'high',
-        completionPercentage: 78,
-        targetDate: '2025-03-31'
-      }
-    ]);
-
-    // Team Initiatives - Initiatives specific to the employee's team
-    setTeamInitiatives([
-      {
-        id: '1',
-        title: 'Enterprise Account Expansion',
-        description: 'Focus on expanding existing enterprise accounts',
-        status: 'active',
-        priority: 'medium',
-        completionPercentage: 45,
-        targetDate: '2025-05-15'
-      }
-    ]);
-
-    // My Actions - Action items assigned to this specific employee
-    setMyActions([
-      {
-        id: '1',
-        title: 'Complete Q1 Sales Analysis Report',
-        description: 'Analyze Q1 sales performance and identify key trends',
-        status: 'in_progress',
-        priority: 'high',
-        dueDate: '2025-02-15',
-        estimatedHours: 8,
-        actualHours: 5,
-        initiative: 'Pipeline Acceleration Program'
-      },
-      {
-        id: '2',
-        title: 'Update CRM with new lead data',
-        description: 'Import and validate new leads from marketing campaigns',
-        status: 'not_started',
-        priority: 'medium',
-        dueDate: '2025-02-10',
-        estimatedHours: 4,
-        actualHours: 0,
-        initiative: 'New Logo Acquisition Strategy'
-      },
-      {
-        id: '3',
-        title: 'Prepare client presentation for ABC Corp',
-        description: 'Create quarterly review presentation for key client',
-        status: 'completed',
-        priority: 'high',
-        dueDate: '2025-02-05',
-        estimatedHours: 6,
-        actualHours: 7,
-        initiative: 'Enterprise Account Expansion'
-      }
-    ]);
-  }, [employeeProfile.business_unit_id, employeeProfile.team]);
+  // Get actions assigned to this employee from all initiatives in their business unit
+  const myActions = businessUnitInitiatives.flatMap((initiative) =>
+    (initiative.actionItems || [])
+      .filter(item => item.owner === `${employeeProfile.first_name} ${employeeProfile.last_name}`)
+      .map((item) => ({
+        ...item,
+        initiativeTitle: initiative.title,
+      }))
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -235,18 +240,6 @@ export default function EmployeeDashboardPage() {
       case 'medium': return 'text-yellow-700 bg-yellow-100';
       default: return 'text-green-700 bg-green-100';
     }
-  };
-
-  const updateActionStatus = (actionId: string, newStatus: ActionItem['status']) => {
-    setMyActions(prev => prev.map(action => 
-      action.id === actionId ? { ...action, status: newStatus } : action
-    ));
-  };
-
-  const updateActionHours = (actionId: string, hours: number) => {
-    setMyActions(prev => prev.map(action => 
-      action.id === actionId ? { ...action, actualHours: hours } : action
-    ));
   };
 
   return (
@@ -280,7 +273,6 @@ export default function EmployeeDashboardPage() {
           <nav className="-mb-px flex space-x-8">
             {[
               { id: 'about', label: 'About Me', icon: User },
-              { id: 'goals', label: 'Goals', icon: Target },
               { id: 'initiatives', label: 'Initiatives & Actions', icon: CheckCircle }
             ].map(tab => {
               const IconComponent = tab.icon;
@@ -324,7 +316,7 @@ export default function EmployeeDashboardPage() {
 
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <UserCheck className="w-5 h-5 text-green-600" />
+                    <User className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">First Name</div>
@@ -334,7 +326,7 @@ export default function EmployeeDashboardPage() {
 
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <UserCheck className="w-5 h-5 text-green-600" />
+                    <User className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Last Name</div>
@@ -386,7 +378,7 @@ export default function EmployeeDashboardPage() {
 
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                    <UserCheck className="w-5 h-5 text-pink-600" />
+                    <User className="w-5 h-5 text-pink-600" />
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Manager</div>
@@ -408,197 +400,6 @@ export default function EmployeeDashboardPage() {
           </div>
         )}
 
-        {/* Goals Tab */}
-        {activeTab === 'goals' && (
-          <div className="space-y-8">
-            {/* My Business Unit Goals */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center mb-6">
-                <Building className="w-6 h-6 text-purple-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Business Unit Goals</h2>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {businessUnitGoals.map(goal => (
-                  <div key={goal.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{goal.title}</h3>
-                        <p className="text-gray-600 mt-1">{goal.description}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(goal.status)}`}>
-                        {goal.status}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
-                          <span className="font-medium">{goal.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Current:</span>
-                          <span className="font-medium ml-2">
-                            {goal.currentValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Target:</span>
-                          <span className="font-medium ml-2">
-                            {goal.targetValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Target Date: {new Date(goal.targetDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* My Team Goals */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center mb-6">
-                <Users className="w-6 h-6 text-orange-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Team Goals</h2>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {teamGoals.map(goal => (
-                  <div key={goal.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{goal.title}</h3>
-                        <p className="text-gray-600 mt-1">{goal.description}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(goal.status)}`}>
-                        {goal.status}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
-                          <span className="font-medium">{goal.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Current:</span>
-                          <span className="font-medium ml-2">
-                            {goal.currentValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Target:</span>
-                          <span className="font-medium ml-2">
-                            {goal.targetValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Target Date: {new Date(goal.targetDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* My Personal Goals */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center mb-6">
-                <Target className="w-6 h-6 text-blue-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Goals</h2>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {personalGoals.map(goal => (
-                  <div key={goal.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{goal.title}</h3>
-                        <p className="text-gray-600 mt-1">{goal.description}</p>
-                      </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(goal.status)}`}>
-                          {goal.status}
-                        </span>
-                        {goal.category && (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            goal.category === 'performance' ? 'bg-blue-100 text-blue-800' :
-                            goal.category === 'development' ? 'bg-green-100 text-green-800' :
-                            goal.category === 'behavioral' ? 'bg-purple-100 text-purple-800' :
-                            'bg-orange-100 text-orange-800'
-                          }`}>
-                            {goal.category}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
-                          <span className="font-medium">{goal.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${goal.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Current:</span>
-                          <span className="font-medium ml-2">
-                            {goal.currentValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Target:</span>
-                          <span className="font-medium ml-2">
-                            {goal.targetValue.toLocaleString()}{goal.unit}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Target Date: {new Date(goal.targetDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Initiatives & Actions Tab */}
         {activeTab === 'initiatives' && (
           <div className="space-y-8">
@@ -606,154 +407,106 @@ export default function EmployeeDashboardPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center mb-6">
                 <Building className="w-6 h-6 text-purple-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Business Unit Initiatives</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  My Business Unit Initiatives ({employeeProfile.business_unit_name})
+                </h2>
               </div>
-              <div className="space-y-4">
-                {businessUnitInitiatives.map(initiative => (
-                  <div key={initiative.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{initiative.title}</h3>
-                        <p className="text-gray-600 mt-1">{initiative.description}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(initiative.priority)}`}>
-                          {initiative.priority}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(initiative.status)}`}>
-                          {initiative.status}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Completion</span>
-                          <span className="font-medium">{initiative.completionPercentage}%</span>
+              
+              {businessUnitInitiatives.length > 0 ? (
+                <div className="space-y-4">
+                  {businessUnitInitiatives.map(initiative => (
+                    <div key={initiative.id} className="border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-medium text-gray-900">{initiative.title}</h3>
+                          <p className="text-gray-600 mt-1">{initiative.description}</p>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${initiative.completionPercentage}%` }}
-                          />
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor('medium')}`}>
+                            {initiative.actionItems?.length || 0} actions
+                          </span>
                         </div>
                       </div>
                       
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Target Date: {new Date(initiative.targetDate).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* My Team Initiatives */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center mb-6">
-                <Users className="w-6 h-6 text-orange-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Team Initiatives</h2>
-              </div>
-              <div className="space-y-4">
-                {teamInitiatives.map(initiative => (
-                  <div key={initiative.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{initiative.title}</h3>
-                        <p className="text-gray-600 mt-1">{initiative.description}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(initiative.priority)}`}>
-                          {initiative.priority}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(initiative.status)}`}>
-                          {initiative.status}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Completion</span>
-                          <span className="font-medium">{initiative.completionPercentage}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${initiative.completionPercentage}%` }}
-                          />
+                      <div className="text-sm text-gray-600">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>Status: Active</div>
+                          <div>Priority: High</div>
+                          <div>Actions: {initiative.actionItems?.length || 0}</div>
                         </div>
                       </div>
-                      
-                      <div className="text-sm text-gray-600 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Target Date: {new Date(initiative.targetDate).toLocaleDateString()}
-                      </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Building className="w-8 h-8 text-gray-400" />
                   </div>
-                ))}
-              </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Initiatives Found</h3>
+                  <p className="text-gray-600">No initiatives found for your business unit.</p>
+                </div>
+              )}
             </div>
 
             {/* My Actions */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center mb-6">
                 <CheckCircle className="w-6 h-6 text-blue-600 mr-3" />
-                <h2 className="text-xl font-semibold text-gray-900">My Actions</h2>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  My Actions ({myActions.length} assigned to me)
+                </h2>
               </div>
-              <div className="space-y-4">
-                {myActions.map(action => (
-                  <div key={action.id} className="border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900">{action.title}</h3>
-                        <p className="text-gray-600 mt-1">{action.description}</p>
-                        <p className="text-sm text-gray-500 mt-2">Initiative: {action.initiative}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(action.priority)}`}>
-                          {action.priority}
-                        </span>
-                        <select
-                          value={action.status}
-                          onChange={(e) => updateActionStatus(action.id, e.target.value as ActionItem['status'])}
-                          className="text-sm border border-gray-300 rounded-md px-2 py-1"
-                        >
-                          <option value="not_started">Not Started</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="completed">Completed</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Due: {new Date(action.dueDate).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Estimated: {action.estimatedHours}h
-                      </div>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 mr-2">Actual:</span>
-                        <input
-                          type="number"
-                          value={action.actualHours}
-                          onChange={(e) => updateActionHours(action.id, parseFloat(e.target.value) || 0)}
-                          className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
-                          min="0"
-                          step="0.5"
+              
+              {myActions.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Action
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Initiative
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Priority
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Due Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {myActions.map((item, index) => (
+                        <EditableActionItem
+                          key={`${item.initiativeTitle}-${index}`}
+                          item={item}
+                          onUpdate={async (id, updates) => {
+                            await updateActionItem(id, updates);
+                          }}
                         />
-                        <span className="text-gray-600 ml-1">h</span>
-                      </div>
-                    </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-gray-400" />
                   </div>
-                ))}
-              </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Actions Assigned</h3>
+                  <p className="text-gray-600">
+                    You don't have any actions assigned to you at the moment.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

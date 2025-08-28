@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Calendar, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, Edit3, Save, X, AlertTriangle, Circle } from "lucide-react";
 import { useData } from "../context/DataContext";
 import type { KPIData } from "../hooks/useSupabaseData";
+import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from "../types/data";
 import KPICard from "./KPICard";
 import InitiativeSection from "./InitiativeSection";
 import TrendlineChart from "./TrendlineChart";

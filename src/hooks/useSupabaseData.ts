@@ -430,6 +430,7 @@ export default function BusinessUnitPage({
 
   // Get attainment color
   const getAttainmentColor = (percentage: number) => {
+  }
   // Filter KPIs for the overview table based on frequency
   const filteredKPIsForTable = kpis.filter(kpi => {
     if (kpiTableFrequencyFilter === 'all') return true;
@@ -482,6 +483,7 @@ export default function BusinessUnitPage({
 
   // Get attainment color
   const getAttainmentColor = (percentage: number) => {
+  }
   const calculateAttainment = (actual: number, target: number) => {
     if (target === 0) return 0;
     return Math.round((actual / target) * 100);

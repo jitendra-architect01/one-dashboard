@@ -679,10 +679,9 @@ export const useSupabaseData = (): SupabaseData => {
     updateKPI,
     addKPI,
     deleteKPI,
-    professional_services: 'Professional Services',
-    product_engineering: 'Product & Engineering',
-    customer_success: 'Customer Success',
-    human_resources: 'Human Resources',
-    general_administrative: 'General & Administrative'
+    addInitiative,
+    updateInitiative,
+    deleteInitiative,
+    updateActionItem
   };
 };

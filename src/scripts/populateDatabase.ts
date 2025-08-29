@@ -56,6 +56,14 @@ const businessUnits = [
     icon: "UserCheck",
     color: "bg-pink-500",
   },
+  {
+    code: "general_administrative",
+    name: "General & Administrative",
+    description:
+      "Administrative functions, compliance, and operational support",
+    icon: "FileText",
+    color: "bg-gray-500",
+  },
 ];
 
 const kpiDefinitions = [
@@ -288,6 +296,44 @@ const kpiDefinitions = [
     is_visible_on_dashboard: false,
     display_order: 17,
   },
+
+  // General & Administrative KPIs
+  {
+    name: "Administrative Efficiency",
+    description: "Overall administrative process efficiency",
+    calculation_formula: "SUM(processed_requests) / SUM(total_requests) * 100",
+    dependent_metrics: ["processed_requests", "total_requests"],
+    unit: "%",
+    target_value: 95,
+    trend_direction: "up",
+    color: "bg-gray-500",
+    is_visible_on_dashboard: false,
+    display_order: 18,
+  },
+  {
+    name: "Compliance Score",
+    description: "Overall compliance rating across all functions",
+    calculation_formula: "AVG(compliance_ratings)",
+    dependent_metrics: ["compliance_ratings"],
+    unit: "%",
+    target_value: 98,
+    trend_direction: "up",
+    color: "bg-gray-500",
+    is_visible_on_dashboard: false,
+    display_order: 19,
+  },
+  {
+    name: "Cost per Employee",
+    description: "Administrative cost per employee",
+    calculation_formula: "SUM(admin_costs) / COUNT(employees)",
+    dependent_metrics: ["admin_costs", "employees"],
+    unit: "$",
+    target_value: 2500,
+    trend_direction: "down",
+    color: "bg-gray-500",
+    is_visible_on_dashboard: false,
+    display_order: 20,
+  },
 ];
 
 const initiatives = [
@@ -473,6 +519,36 @@ const initiatives = [
     completion_percentage: 40,
     budget_allocated: 250000,
     budget_spent: 100000,
+  },
+
+  // General & Administrative Initiatives
+  {
+    title: "Process Optimization Initiative",
+    description:
+      "Streamlining administrative processes and improving operational efficiency",
+    objective: "Improve administrative efficiency and reduce processing time",
+    success_criteria: "Achieve 95% process efficiency and 30% faster processing",
+    status: "active",
+    priority: "medium",
+    start_date: "2025-01-01",
+    target_date: "2025-08-31",
+    completion_percentage: 45,
+    budget_allocated: 200000,
+    budget_spent: 90000,
+  },
+  {
+    title: "Compliance Enhancement Program",
+    description:
+      "Strengthening compliance frameworks and audit readiness across all functions",
+    objective: "Enhance compliance posture and audit readiness",
+    success_criteria: "Achieve 98% compliance score and zero audit findings",
+    status: "active",
+    priority: "high",
+    start_date: "2025-02-01",
+    target_date: "2025-10-31",
+    completion_percentage: 30,
+    budget_allocated: 150000,
+    budget_spent: 45000,
   },
 ];
 
@@ -889,6 +965,41 @@ const actionItems = [
     due_date: "2025-02-10",
     completed_date: "2025-02-10",
     tags: ["engagement", "surveys"],
+  },
+
+  // General & Administrative Action Items
+  {
+    title: "Implement document management system",
+    description: "Deploy centralized document management and version control",
+    action_type: "deliverable",
+    status: "in_progress",
+    priority: "high",
+    estimated_hours: 80,
+    actual_hours: 50,
+    due_date: "2025-02-28",
+    tags: ["document-management", "efficiency"],
+  },
+  {
+    title: "Conduct quarterly compliance audit",
+    description: "Perform comprehensive compliance review and assessment",
+    action_type: "task",
+    status: "not_started",
+    priority: "high",
+    estimated_hours: 40,
+    actual_hours: 0,
+    due_date: "2025-03-15",
+    tags: ["compliance", "audit"],
+  },
+  {
+    title: "Optimize administrative cost structure",
+    description: "Review and optimize administrative expenses and processes",
+    action_type: "task",
+    status: "in_progress",
+    priority: "medium",
+    estimated_hours: 60,
+    actual_hours: 25,
+    due_date: "2025-03-20",
+    tags: ["cost-optimization", "efficiency"],
   },
 ];
 

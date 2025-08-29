@@ -18,14 +18,14 @@ import {
 interface FilterState {
   dateRange: string;
   businessUnit: string;
-  epicgCategory: string;
+  frequencyCategory: string;
 }
 
 export default function AnalyticsDashboard() {
   const [filters, setFilters] = useState<FilterState>({
     dateRange: 'last12months',
     businessUnit: 'all',
-    epicgCategory: 'all'
+    frequencyCategory: 'all'
   });
   
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
@@ -85,7 +85,7 @@ export default function AnalyticsDashboard() {
 
   const filteredKPIs = allKPIs.filter(kpi => {
     if (filters.businessUnit !== 'all' && kpi.businessUnit !== filters.businessUnit) return false;
-    if (filters.epicgCategory !== 'all' && kpi.category !== filters.epicgCategory) return false;
+    if (filters.frequencyCategory !== 'all' && kpi.category !== filters.frequencyCategory) return false;
     return true;
   });
 
@@ -102,7 +102,7 @@ export default function AnalyticsDashboard() {
       type: 'info',
       title: 'Total KPIs',
       value: filteredKPIs.length,
-      description: filters.epicgCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'
+      description: filters.frequencyCategory !== 'all' || filters.businessUnit !== 'all' ? 'Filtered results' : 'Across all units'
     });
     
     insights.push({
@@ -142,7 +142,7 @@ export default function AnalyticsDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Advanced Analytics</h1>
-            <p className="text-lg text-gray-600">Real-time KPI analysis with EPICG categorization</p>
+            <p className="text-lg text-gray-600">Real-time KPI analysis with frequency-based categorization</p>
           </div>
           <div className="flex items-center space-x-3">
             <button className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -190,13 +190,13 @@ export default function AnalyticsDashboard() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">EPICG Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frequency Category</label>
                 <select
-                  value={filters.epicgCategory}
-                  onChange={(e) => setFilters(prev => ({ ...prev, epicgCategory: e.target.value }))}
+                  value={filters.frequencyCategory}
+                  onChange={(e) => setFilters(prev => ({ ...prev, frequencyCategory: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All EPICG Categories</option>
+                  <option value="all">All Frequency Categories</option>
                   {KPI_CATEGORY_ORDER.map(categoryId => {
                     const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
                     return (
@@ -215,9 +215,9 @@ export default function AnalyticsDashboard() {
             <div className="flex items-center justify-between text-sm text-gray-600">
               <div>
                 Showing <span className="font-medium text-gray-900">{filteredKPIs.length}</span> of <span className="font-medium text-gray-900">{allKPIs.length}</span> KPIs
-                {filters.epicgCategory !== 'all' && (
+                {filters.frequencyCategory !== 'all' && (
                   <span className="ml-2">
-                    • <span className="font-medium">{KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label}</span> category
+                    • <span className="font-medium">{KPI_CATEGORIES[filters.frequencyCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label}</span> category
                   </span>
                 )}
                 {filters.businessUnit !== 'all' && (
@@ -226,9 +226,9 @@ export default function AnalyticsDashboard() {
                   </span>
                 )}
               </div>
-              {(filters.businessUnit !== 'all' || filters.epicgCategory !== 'all') && (
+              {(filters.businessUnit !== 'all' || filters.frequencyCategory !== 'all') && (
                 <button
-                  onClick={() => setFilters({ dateRange: 'last12months', businessUnit: 'all', epicgCategory: 'all' })}
+                  onClick={() => setFilters({ dateRange: 'last12months', businessUnit: 'all', frequencyCategory: 'all' })}
                   className="text-blue-600 hover:text-blue-800 font-medium"
                 >
                   Clear Filters
@@ -266,19 +266,19 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* KPIs by EPICG Category */}
-        {filters.epicgCategory !== 'all' ? (
+        {filters.frequencyCategory !== 'all' ? (
           <div className="space-y-8">
             {/* Selected Category Header */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 ${KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.color} rounded-lg flex items-center justify-center`}>
+                <div className={`w-12 h-12 ${KPI_CATEGORIES[filters.frequencyCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.color} rounded-lg flex items-center justify-center`}>
                   <span className="text-white font-bold text-lg">
-                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.shortForm}
+                    {KPI_CATEGORIES[filters.frequencyCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.shortForm}
                   </span>
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} KPIs
+                    {KPI_CATEGORIES[filters.frequencyCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} KPIs
                   </h2>
                   <p className="text-gray-600">
                     {filteredKPIs.length} KPIs in this category
@@ -324,7 +324,7 @@ export default function AnalyticsDashboard() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
                 <p className="text-gray-600">
-                  No KPIs found for the selected {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} tracking frequency
+                  No KPIs found for the selected {KPI_CATEGORIES[filters.frequencyCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} tracking frequency
                   {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
                 </p>
               </div>
@@ -334,7 +334,7 @@ export default function AnalyticsDashboard() {
           <div className="space-y-8">
             {/* All Categories Overview */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">KPIs by EPICG Category</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">KPIs by Frequency Category</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {KPI_CATEGORY_ORDER.map(categoryId => {
                   const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];

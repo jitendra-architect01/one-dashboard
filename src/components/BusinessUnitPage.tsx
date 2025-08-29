@@ -461,6 +461,7 @@ export default function BusinessUnitPage({
           )}
 
           {/* KPIs organized by EPICG categories */}
+          {/* KPIs organized by Frequency categories */}
           <div className="space-y-8">
             {KPI_CATEGORY_ORDER.map((categoryId) => {
               const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];

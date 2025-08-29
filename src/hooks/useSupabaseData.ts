@@ -134,7 +134,7 @@ export const useSupabaseData = (): SupabaseData => {
               isVisibleOnDashboard: kpi.is_visible_on_dashboard || false,
               businessUnit: bu.code,
               businessUnitName: bu.name,
-              category: (kpi.category as KPICategory) || "Economics", // Default to Economics for existing KPIs
+              category: (kpi.category as KPICategory) || "Monthly", // Default to Monthly for existing KPIs
             }));
 
           // Get initiatives for this business unit

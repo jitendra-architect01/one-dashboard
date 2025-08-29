@@ -53,7 +53,7 @@ export default function KPIForm({
     unit: '',
     period: '',
     trend: 'neutral',
-    category: 'Monthly', // Default to Monthly
+    category: 'Economics', // Default to Economics
   });
   
   const [quarterlyTargets, setQuarterlyTargets] = useState({
@@ -65,13 +65,13 @@ export default function KPIForm({
   });
 
   // For editing existing KPIs - track category changes
-  const [editingCategory, setEditingCategory] = useState<string>('Monthly');
+  const [editingCategory, setEditingCategory] = useState<string>('');
 
   const handleKPISelection = (kpiId: string) => {
     const selected = businessUnitKPIs.find((k) => k.id === kpiId);
     if (selected) {
       setSelectedKPI(selected);
-      setEditingCategory(selected.category || 'Economics');
+      setEditingCategory(selected.category || 'Monthly');
       setQuarterlyTargets({
         Q1: 0,
         Q2: 0,

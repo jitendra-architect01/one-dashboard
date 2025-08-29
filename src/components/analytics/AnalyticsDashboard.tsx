@@ -324,7 +324,7 @@ export default function AnalyticsDashboard() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No KPIs Found</h3>
                 <p className="text-gray-600">
-                  No KPIs found for the selected {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} category
+                  No KPIs found for the selected {KPI_CATEGORIES[filters.epicgCategory.toUpperCase() as keyof typeof KPI_CATEGORIES]?.label} tracking frequency
                   {filters.businessUnit !== 'all' && ` in ${businessUnitsArray.find(bu => bu.id === filters.businessUnit)?.name}`}.
                 </p>
               </div>

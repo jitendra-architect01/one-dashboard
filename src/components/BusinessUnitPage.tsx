@@ -171,9 +171,9 @@ export default function BusinessUnitPage({
   const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
   const [selectedKPIForTrend, setSelectedKPIForTrend] = useState<string>("");
   const [actionItemFilters, setActionItemFilters] = useState({
-    owner: '',
-    priority: '',
-    status: '',
+    owner: [] as string[],
+    priority: [] as string[],
+    status: [] as string[],
     dueDateFrom: '',
     dueDateTo: '',
     search: ''
@@ -304,17 +304,17 @@ export default function BusinessUnitPage({
     }
     
     // Owner filter
-    if (actionItemFilters.owner && item.owner !== actionItemFilters.owner) {
+    if (actionItemFilters.owner.length > 0 && !actionItemFilters.owner.includes(item.owner)) {
       return false;
     }
     
     // Priority filter
-    if (actionItemFilters.priority && item.priority !== actionItemFilters.priority) {
+    if (actionItemFilters.priority.length > 0 && !actionItemFilters.priority.includes(item.priority)) {
       return false;
     }
     
     // Status filter
-    if (actionItemFilters.status && item.status !== actionItemFilters.status) {
+    if (actionItemFilters.status.length > 0 && !actionItemFilters.status.includes(item.status)) {
       return false;
     }
     
@@ -338,9 +338,9 @@ export default function BusinessUnitPage({
 
   const clearFilters = () => {
     setActionItemFilters({
-      owner: '',
-      priority: '',
-      status: '',
+      owner: [],
+      priority: [],
+      status: [],
       dueDateFrom: '',
       dueDateTo: '',
       search: ''
@@ -625,52 +625,97 @@ export default function BusinessUnitPage({
                 {/* Owner Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Owner
+                    Owner (Multi-select)
                   </label>
-                  <select
-                    value={actionItemFilters.owner}
-                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, owner: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Owners</option>
+                  <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
                     {uniqueOwners.map(owner => (
-                      <option key={owner} value={owner}>{owner}</option>
+                      <label key={owner} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={actionItemFilters.owner.includes(owner)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                owner: [...prev.owner, owner] 
+                              }));
+                            } else {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                owner: prev.owner.filter(o => o !== owner) 
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">{owner}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 {/* Priority Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priority
+                    Priority (Multi-select)
                   </label>
-                  <select
-                    value={actionItemFilters.priority}
-                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, priority: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Priorities</option>
+                  <div className="space-y-2 border border-gray-300 rounded-md p-2">
                     {uniquePriorities.map(priority => (
-                      <option key={priority} value={priority}>{priority}</option>
+                      <label key={priority} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={actionItemFilters.priority.includes(priority)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                priority: [...prev.priority, priority] 
+                              }));
+                            } else {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                priority: prev.priority.filter(p => p !== priority) 
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">{priority}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 {/* Status Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
+                    Status (Multi-select)
                   </label>
-                  <select
-                    value={actionItemFilters.status}
-                    onChange={(e) => setActionItemFilters(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Statuses</option>
+                  <div className="space-y-2 border border-gray-300 rounded-md p-2">
                     {uniqueStatuses.map(status => (
-                      <option key={status} value={status}>{status}</option>
+                      <label key={status} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={actionItemFilters.status.includes(status)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                status: [...prev.status, status] 
+                              }));
+                            } else {
+                              setActionItemFilters(prev => ({ 
+                                ...prev, 
+                                status: prev.status.filter(s => s !== status) 
+                              }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">{status}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 {/* Due Date Range */}
@@ -691,6 +736,15 @@ export default function BusinessUnitPage({
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
                   Showing {filteredActionItems.length} of {allActionItems.length} action items
+                  {(actionItemFilters.owner.length > 0 || actionItemFilters.priority.length > 0 || actionItemFilters.status.length > 0) && (
+                    <span className="ml-2 text-blue-600">
+                      • {[
+                        actionItemFilters.owner.length > 0 ? `${actionItemFilters.owner.length} owner(s)` : '',
+                        actionItemFilters.priority.length > 0 ? `${actionItemFilters.priority.length} priority(ies)` : '',
+                        actionItemFilters.status.length > 0 ? `${actionItemFilters.status.length} status(es)` : ''
+                      ].filter(Boolean).join(', ')} selected
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={clearFilters}

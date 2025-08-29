@@ -1,5 +1,5 @@
-// KPI Category definitions for EPICG framework
-export type KPICategory = 'Economics' | 'People' | 'Innovation' | 'Customer' | 'Growth';
+// KPI Category definitions for frequency-based tracking
+export type KPICategory = 'Weekly' | 'Monthly' | 'Quarterly';
 
 export interface KPICategoryInfo {
   id: KPICategory;
@@ -9,39 +9,27 @@ export interface KPICategoryInfo {
 }
 
 export const KPI_CATEGORIES: Record<string, KPICategoryInfo> = {
-  ECONOMICS: {
-    id: 'Economics',
-    label: 'Economics',
-    shortForm: 'E',
+  WEEKLY: {
+    id: 'Weekly',
+    label: 'Weekly',
+    shortForm: 'W',
     color: 'bg-blue-500'
   },
-  PEOPLE: {
-    id: 'People',
-    label: 'People',
-    shortForm: 'P',
+  MONTHLY: {
+    id: 'Monthly',
+    label: 'Monthly',
+    shortForm: 'M',
     color: 'bg-green-500'
   },
-  INNOVATION: {
-    id: 'Innovation',
-    label: 'Innovation',
-    shortForm: 'I',
-    color: 'bg-purple-500'
-  },
-  CUSTOMER: {
-    id: 'Customer',
-    label: 'Customer',
-    shortForm: 'C',
+  QUARTERLY: {
+    id: 'Quarterly',
+    label: 'Quarterly',
+    shortForm: 'Q',
     color: 'bg-orange-500'
-  },
-  GROWTH: {
-    id: 'Growth',
-    label: 'Growth',
-    shortForm: 'G',
-    color: 'bg-red-500'
   }
 };
 
-export const KPI_CATEGORY_ORDER: KPICategory[] = ['Economics', 'People', 'Innovation', 'Customer', 'Growth'];
+export const KPI_CATEGORY_ORDER: KPICategory[] = ['Weekly', 'Monthly', 'Quarterly'];
 
 // Data context type definition
 export interface DataContextType {

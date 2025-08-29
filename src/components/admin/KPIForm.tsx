@@ -476,17 +476,17 @@ export default function KPIForm({
             {/* EPICG Category Selection */}
             <div className="mt-6 mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                EPICG Category
+                Tracking Frequency Category
               </label>
-              <select
+                  Tracking Frequency
                 value={editingCategory}
                 onChange={(e) => setEditingCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
-                <option value="">Select EPICG Category</option>
+                <option value="">Select Tracking Frequency</option>
                 {KPI_CATEGORY_ORDER.map((categoryId) => {
-                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
+                  <option value="">Select tracking frequency</option>
                   return (
                     <option key={categoryId} value={categoryId}>
                       {category.label} ({category.shortForm})

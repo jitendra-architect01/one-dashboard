@@ -150,13 +150,13 @@ const EditableActionItem: React.FC<EditableActionItemProps> = ({ item, onUpdate 
       <td className="px-6 py-4 text-sm">
         <button
           onClick={() => setIsEditing(true)}
-          className="text-blue-600 hover:text-blue-800"
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
           title="Edit"
-        >
+      return <Clock className="w-4 h-4 text-blue-500" />;
           <Edit3 className="w-4 h-4" />
-        </button>
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
       </td>
-    </tr>
+      return <Circle className="w-4 h-4 text-gray-400" />;
   );
 };
 

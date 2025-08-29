@@ -421,25 +421,6 @@ export default function BusinessUnitPage({
     };
   };
 
-  // Calculate attainment percentage
-  const calculateAttainment = (actual: number, target: number) => {
-    if (target === 0) return 0;
-    return Math.round((actual / target) * 100);
-  };
-
-  // Get attainment color
-  const getAttainmentColor = (percentage: number) => {
-  const calculateAttainment = (actual: number, target: number) => {
-    if (target === 0) return 0;
-    return Math.round((actual / target) * 100);
-  };
-
-  // Get attainment color based on percentage
-  const getAttainmentColor = (percentage: number) => {
-    if (percentage >= 100) return 'text-green-600 bg-green-50';
-    if (percentage >= 80) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
-  };
   if (!businessUnit) {
     return (
       <div className="p-6 lg:p-8">

@@ -53,7 +53,7 @@ export default function KPIForm({
     unit: '',
     period: '',
     trend: 'neutral',
-    category: 'Economics', // Default to Economics
+    category: 'Monthly', // Default to Monthly
   });
   
   const [quarterlyTargets, setQuarterlyTargets] = useState({
@@ -65,7 +65,7 @@ export default function KPIForm({
   });
 
   // For editing existing KPIs - track category changes
-  const [editingCategory, setEditingCategory] = useState<string>('');
+  const [editingCategory, setEditingCategory] = useState<string>('Monthly');
 
   const handleKPISelection = (kpiId: string) => {
     const selected = businessUnitKPIs.find((k) => k.id === kpiId);
@@ -478,15 +478,15 @@ export default function KPIForm({
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Tracking Frequency Category
               </label>
-                  Tracking Frequency
+              <select
                 value={editingCategory}
                 onChange={(e) => setEditingCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
-                <option value="">Select Tracking Frequency</option>
+                <option value="">Select tracking frequency</option>
                 {KPI_CATEGORY_ORDER.map((categoryId) => {
-                  <option value="">Select tracking frequency</option>
+                  const category = KPI_CATEGORIES[categoryId.toUpperCase() as keyof typeof KPI_CATEGORIES];
                   return (
                     <option key={categoryId} value={categoryId}>
                       {category.label} ({category.shortForm})

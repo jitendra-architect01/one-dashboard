@@ -150,13 +150,13 @@ const EditableActionItem: React.FC<EditableActionItemProps> = ({ item, onUpdate 
       <td className="px-6 py-4 text-sm">
         <button
           onClick={() => setIsEditing(true)}
-          className="text-blue-600 hover:text-blue-800"
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
           title="Edit"
-        >
+      return <Clock className="w-4 h-4 text-blue-500" />;
           <Edit3 className="w-4 h-4" />
-        </button>
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
       </td>
-    </tr>
+      return <Circle className="w-4 h-4 text-gray-400" />;
   );
 };
 
@@ -170,6 +170,7 @@ export default function BusinessUnitPage({
   const [expandedInitiatives, setExpandedInitiatives] = useState<number[]>([]);
   const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
   const [selectedKPIForTrend, setSelectedKPIForTrend] = useState<string>("");
+  const [kpiTableFrequencyFilter, setKpiTableFrequencyFilter] = useState<string>('all');
   const [kpiTableFrequencyFilter, setKpiTableFrequencyFilter] = useState<string>('all');
   const [actionItemFilters, setActionItemFilters] = useState({
     owner: [] as string[],
@@ -421,6 +422,79 @@ export default function BusinessUnitPage({
     };
   };
 
+  // Calculate attainment percentage
+  const calculateAttainment = (actual: number, target: number) => {
+    if (target === 0) return 0;
+    return Math.round((actual / target) * 100);
+  };
+
+  // Get attainment color
+  const getAttainmentColor = (percentage: number) => {
+  }
+  // Filter KPIs for the overview table based on frequency
+  const filteredKPIsForTable = kpis.filter(kpi => {
+    if (kpiTableFrequencyFilter === 'all') return true;
+    return kpi.category === kpiTableFrequencyFilter;
+  });
+
+  // Generate quarterly targets for display (mock data for now)
+  const getQuarterlyTargets = (kpi: KPIData) => {
+    const yearlyTarget = kpi.target;
+    return {
+      Q1: Math.round(yearlyTarget * 0.23), // 23% of yearly target
+      Q2: Math.round(yearlyTarget * 0.25), // 25% of yearly target
+      Q3: Math.round(yearlyTarget * 0.26), // 26% of yearly target
+      Q4: Math.round(yearlyTarget * 0.26), // 26% of yearly target
+      Year: yearlyTarget
+    };
+  };
+
+  // Get quarterly actuals (mock data for now)
+  const getQuarterlyActuals = (kpi: KPIData) => {
+    if (kpi.monthlyData && kpi.monthlyData.length === 12) {
+      return {
+        Q1: kpi.monthlyData.slice(0, 3).reduce((sum, val) => sum + val, 0),
+        Q2: kpi.monthlyData.slice(3, 6).reduce((sum, val) => sum + val, 0),
+        Q3: kpi.monthlyData.slice(6, 9).reduce((sum, val) => sum + val, 0),
+        Q4: kpi.monthlyData.slice(9, 12).reduce((sum, val) => sum + val, 0),
+        Year: kpi.monthlyData.reduce((sum, val) => sum + val, 0)
+      };
+    }
+    
+    // Fallback: distribute current value across quarters
+    const currentMonth = new Date().getMonth();
+    const currentQuarterIndex = Math.floor(currentMonth / 3);
+    const quarterlyValue = Math.round(kpi.current / (currentQuarterIndex + 1));
+    
+    return {
+      Q1: currentQuarterIndex >= 0 ? quarterlyValue : 0,
+      Q2: currentQuarterIndex >= 1 ? quarterlyValue : 0,
+      Q3: currentQuarterIndex >= 2 ? quarterlyValue : 0,
+      Q4: currentQuarterIndex >= 3 ? quarterlyValue : 0,
+      Year: kpi.current
+    };
+  };
+
+  // Calculate attainment percentage
+  const calculateAttainment = (actual: number, target: number) => {
+    if (target === 0) return 0;
+    return Math.round((actual / target) * 100);
+  };
+
+  // Get attainment color
+  const getAttainmentColor = (percentage: number) => {
+  }
+  const calculateAttainment = (actual: number, target: number) => {
+    if (target === 0) return 0;
+    return Math.round((actual / target) * 100);
+  };
+
+  // Get attainment color based on percentage
+  const getAttainmentColor = (percentage: number) => {
+    if (percentage >= 100) return 'text-green-600 bg-green-50';
+    if (percentage >= 80) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
   if (!businessUnit) {
     return (
       <div className="p-6 lg:p-8">

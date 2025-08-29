@@ -28,10 +28,11 @@ export default function TrendlineAdminPage() {
   const businessUnitNames = {
     sales: 'Sales',
     marketing: 'Marketing',
-    professionalServices: 'Professional Services',
-    productEngineering: 'Product & Engineering',
-    customerSuccess: 'Customer Success',
-    humanResources: 'Human Resources'
+    professional_services: 'Professional Services',
+    product_engineering: 'Product & Engineering',
+    customer_success: 'Customer Success',
+    human_resources: 'Human Resources',
+    general_administrative: 'General & Administrative'
   };
 
   const getKPIKey = (businessUnit: string, kpiId: number) => `${businessUnit}-${kpiId}`;

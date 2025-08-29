@@ -319,7 +319,8 @@ export default function ExcelUploadInterface() {
       professionalServices: 'bg-orange-500',
       productEngineering: 'bg-indigo-500',
       customerSuccess: 'bg-teal-500',
-      humanResources: 'bg-pink-500'
+      humanResources: 'bg-pink-500',
+      generalAdministrative: 'bg-gray-500'
     };
     return colors[businessUnit as keyof typeof colors] || 'bg-gray-500';
   };

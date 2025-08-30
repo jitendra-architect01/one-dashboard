@@ -19,6 +19,13 @@ export interface KPIData {
   businessUnitName: string;
   monthlyData?: number[];
   category?: KPICategory;
+  quarterlyTargets?: {
+    Q1: number;
+    Q2: number;
+    Q3: number;
+    Q4: number;
+    Year: number;
+  };
 }
 
 export interface ActionItemData {
@@ -268,6 +275,12 @@ export const useSupabaseData = (): SupabaseData => {
           console.warn('monthlyData field not supported in current database schema');
           // TODO: Add monthly_data field to KPIDefinition table or create separate table
         }
+        
+        // Handle quarterly targets
+        if (updates.quarterlyTargets !== undefined) {
+          console.warn('quarterlyTargets field not supported in current database schema');
+          // TODO: Add quarterly_targets field to KPIDefinition table or create separate table
+        }
 
         console.log('Database updates to be applied:', dbUpdates);
         
@@ -396,6 +409,13 @@ export const useSupabaseData = (): SupabaseData => {
                       ...kpi,
                       id: newKPI.id,
                       isVisibleOnDashboard: true, // Ensure it's visible in local state
+                      quarterlyTargets: {
+                        Q1: 0,
+                        Q2: 0,
+                        Q3: 0,
+                        Q4: 0,
+                        Year: kpi.target || 0
+                      }
                     },
                   ],
                 }

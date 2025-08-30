@@ -67,6 +67,19 @@ export default function KPIForm({
   // For editing existing KPIs - track category changes
   const [editingCategory, setEditingCategory] = useState<string>('');
 
+  // Initialize quarterly targets when KPI is selected
+  React.useEffect(() => {
+    if (selectedKPI) {
+      setQuarterlyTargets({
+        Q1: selectedKPI.quarterlyTargets?.Q1 || 0,
+        Q2: selectedKPI.quarterlyTargets?.Q2 || 0,
+        Q3: selectedKPI.quarterlyTargets?.Q3 || 0,
+        Q4: selectedKPI.quarterlyTargets?.Q4 || 0,
+        Year: selectedKPI.target || 0,
+      });
+    }
+  }, [selectedKPI]);
+
   const handleKPISelection = (kpiId: string) => {
     const selected = businessUnitKPIs.find((k) => k.id === kpiId);
     if (selected) {

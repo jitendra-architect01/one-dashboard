@@ -6,6 +6,7 @@ import { KPI_CATEGORIES, KPI_CATEGORY_ORDER } from "../types/data";
 import KPICard from "./KPICard";
 import InitiativeSection from "./InitiativeSection";
 import TrendlineChart from "./TrendlineChart";
+import QuarterlyTargetsTable from "./QuarterlyTargetsTable";
 
 interface EditableActionItemProps {
   item: {
@@ -412,6 +413,12 @@ export default function BusinessUnitPage({
             </p>
           </div>
         </div>
+
+        {/* Quarterly Targets Table */}
+        <QuarterlyTargetsTable 
+          kpis={kpis}
+          businessUnitName={businessUnit.name}
+        />
 
         {/* 1. Key Performance Indicators */}
         <div className="mb-8">

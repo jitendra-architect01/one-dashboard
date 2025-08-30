@@ -66,11 +66,16 @@ const createUserInAuth = async (
   });
 };
 
-const sendConfirmationEmail = async (email: string): Promise<boolean> => {
+const sendConfirmationEmail = async (
+  email: string,
+  employeeCode: string
+): Promise<boolean> => {
   try {
     const ok = await AuthService.triggerPasswordReset(
       email,
-      `${window.location.origin}/reset-password`
+      `${
+        window.location.origin
+      }/reset-password?employee_code=${encodeURIComponent(employeeCode)}`
     );
     if (!ok) return false;
 
@@ -144,7 +149,10 @@ const addEmployeeToDatabase = async (
     }
 
     // 2) Send email
-    await sendConfirmationEmail(employeeData.email!);
+    await sendConfirmationEmail(
+      employeeData.email!,
+      employeeData.employee_code as string
+    );
 
     // 3) Create employee profile
     const profile = await createEmployeeProfile(employeeData, userId);

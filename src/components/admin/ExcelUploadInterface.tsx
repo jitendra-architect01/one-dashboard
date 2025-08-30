@@ -362,8 +362,8 @@ export default function ExcelUploadInterface() {
             
             // Add timeout to prevent hanging
             const updatePromise = updateKPI(businessUnit, existingKPI.id, {
-              // monthlyData: kpi.monthlyData, // Temporarily removed - database schema doesn't support this field
-              current: kpi.current
+              monthlyData: kpi.monthlyData, // Now supported for cumulative calculation
+              current: kpi.current // This will be recalculated from monthly data
             });
             
             const timeoutPromise = new Promise((_, reject) => 

@@ -67,6 +67,24 @@ export class DataService {
       throw error;
     }
   }
+  static async fetchCalculatedKPIs(
+    businessUnitId?: string,
+    month?: number,
+    year?: number
+  ) {
+    try {
+      const { data, error } = await kpiAPI.getCalculatedKPIs(
+        businessUnitId,
+        month,
+        year
+      );
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching calculated KPIs:", error);
+      throw error;
+    }
+  }
 
   static async toggleKPIVisibility(
     kpiId: string,

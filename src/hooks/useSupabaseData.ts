@@ -106,10 +106,11 @@ export const useSupabaseData = (): SupabaseData => {
       console.log("Fetching all data from Supabase...");
 
       // Fetch all data in parallel
-      const [businessUnitsData, kpiDefinitions, initiatives, actionItems] =
+      const [businessUnitsData, kpiDefinitions, calculatedKPIs, initiatives, actionItems] =
         await Promise.all([
           DataService.fetchAllBusinessUnits(),
           DataService.fetchKPIDefinitions(),
+          DataService.fetchCalculatedKPIs(),
           DataService.fetchInitiatives(),
           DataService.fetchActionItems(),
         ]);
@@ -117,6 +118,7 @@ export const useSupabaseData = (): SupabaseData => {
       console.log("Raw data received:", {
         businessUnits: businessUnitsData,
         kpis: kpiDefinitions,
+        calculatedKPIs,
         initiatives,
         actionItems,
       });
@@ -128,6 +130,18 @@ export const useSupabaseData = (): SupabaseData => {
           const unitKPIs: KPIData[] = kpiDefinitions
             .filter((kpi) => kpi.business_unit_id === bu.id)
             .map((kpi) => ({
+              // Find calculated KPI data for current values and monthly data
+              const calculatedKPI = calculatedKPIs.find(
+                (calc) => calc.kpi_definition_id === kpi.id
+              );
+              
+              // Generate monthly data from calculated KPIs or use mock data
+              const monthlyData = calculatedKPI?.calculation_metadata?.monthlyData as number[] || 
+                                generateMonthlyDataFromCurrent(calculatedKPI?.calculated_value || kpi.target_value || 0);
+              
+              // Calculate cumulative current value from monthly data
+              const cumulativeCurrent = calculateCurrentFromMonthlyData(monthlyData);
+
               id: kpi.id,
               name: kpi.name,
               current: kpi.target_value || 0,
@@ -178,8 +192,16 @@ export const useSupabaseData = (): SupabaseData => {
               return {
                 id: init.id,
                 title: init.title,
-                description: init.description || "",
+                current: cumulativeCurrent,
                 actionItems: initiativeActionItems,
+                monthlyData: monthlyData,
+                quarterlyTargets: {
+                  Q1: 0, // These would come from database in production
+                  Q2: 0,
+                  Q3: 0,
+                  Q4: 0,
+                  Year: kpi.target_value || 0
+                }
               };
             });
 
@@ -201,6 +223,43 @@ export const useSupabaseData = (): SupabaseData => {
     }
   }, []);
 
+  // Helper function to calculate cumulative current value from monthly data
+  const calculateCurrentFromMonthlyData = (monthlyData?: number[]): number => {
+    if (!monthlyData || monthlyData.length === 0) return 0;
+    
+    // Get current month (0-based index)
+    const currentMonth = new Date().getMonth();
+    
+    // Sum all monthly values from January up to current month (inclusive)
+    const cumulativeValue = monthlyData
+      .slice(0, currentMonth + 1)
+      .reduce((sum, value) => sum + (value || 0), 0);
+    
+    return cumulativeValue;
+  };
+
+  // Helper function to generate realistic monthly data from a current value
+  const generateMonthlyDataFromCurrent = (totalValue: number): number[] => {
+    const currentMonth = new Date().getMonth();
+    const monthlyData = new Array(12).fill(0);
+    
+    // Distribute the total value across months up to current month
+    for (let i = 0; i <= currentMonth; i++) {
+      // Generate realistic monthly distribution (not just equal division)
+      const baseValue = totalValue / (currentMonth + 1);
+      const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
+      monthlyData[i] = Math.max(0, Math.round(baseValue * (1 + variation)));
+    }
+    
+    // Adjust the last month to ensure the sum equals the total
+    const currentSum = monthlyData.slice(0, currentMonth + 1).reduce((sum, val) => sum + val, 0);
+    const difference = totalValue - currentSum;
+    if (currentMonth >= 0) {
+      monthlyData[currentMonth] = Math.max(0, monthlyData[currentMonth] + difference);
+    }
+    
+    return monthlyData;
+  };
   const toggleKPIVisibility = useCallback(
     async (businessUnit: string, kpiId: string) => {
       try {

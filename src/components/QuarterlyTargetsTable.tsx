@@ -8,21 +8,6 @@ interface QuarterlyTargetsTableProps {
   businessUnitName: string;
 }
 
-// Helper function to calculate cumulative current value from monthly data
-const calculateCurrentFromMonthlyData = (monthlyData?: number[]): number => {
-  if (!monthlyData || monthlyData.length === 0) return 0;
-  
-  // Get current month (0-based index)
-  const currentMonth = new Date().getMonth();
-  
-  // Sum all monthly values from January up to current month (inclusive)
-  const cumulativeValue = monthlyData
-    .slice(0, currentMonth + 1)
-    .reduce((sum, value) => sum + (value || 0), 0);
-  
-  return cumulativeValue;
-};
-
 export default function QuarterlyTargetsTable({ kpis, businessUnitName }: QuarterlyTargetsTableProps) {
   const [frequencyFilter, setFrequencyFilter] = useState<string>('all');
 
@@ -47,29 +32,19 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
     return `${value.toLocaleString()}${unit === 'number' ? '' : unit}`;
   };
 
-  const getAttainmentColor = (current: number, target: number, monthlyData?: number[]) => {
-    // Calculate actual current value from monthly data if available
-    const actualCurrent = monthlyData ? calculateCurrentFromMonthlyData(monthlyData) : current;
-    
+  const getAttainmentColor = (current: number, target: number) => {
     if (target === 0) return 'text-gray-500';
-    const percentage = (actualCurrent / target) * 100;
+    const percentage = (current / target) * 100;
     if (percentage >= 100) return 'text-green-600';
     if (percentage >= 80) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const getAttainmentPercentage = (current: number, target: number, monthlyData?: number[]) => {
-    // Calculate actual current value from monthly data if available
-    const actualCurrent = monthlyData ? calculateCurrentFromMonthlyData(monthlyData) : current;
-    
+  const getAttainmentPercentage = (current: number, target: number) => {
     if (target === 0) return 0;
-    return Math.round((actualCurrent / target) * 100);
+    return Math.round((current / target) * 100);
   };
 
-  const getCurrentValue = (kpi: KPIData): number => {
-    // Use cumulative monthly data if available, otherwise fall back to current value
-    return kpi.monthlyData ? calculateCurrentFromMonthlyData(kpi.monthlyData) : kpi.current;
-  };
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
       <div className="flex items-center justify-between mb-6">
@@ -82,7 +57,7 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
               {businessUnitName} - Quarterly Targets Overview
             </h2>
             <p className="text-sm text-gray-600">
-              Current performance (cumulative YTD) vs quarterly and annual targets
+              Current performance vs quarterly and annual targets
             </p>
           </div>
         </div>
@@ -136,7 +111,7 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
                   KPI Name
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Current (YTD)
+                  Current
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Q1 2025
@@ -166,9 +141,8 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredKPIs.map((kpi, index) => {
-                const currentValue = getCurrentValue(kpi);
-                const attainmentPercentage = getAttainmentPercentage(kpi.current, kpi.target, kpi.monthlyData);
-                const attainmentColor = getAttainmentColor(kpi.current, kpi.target, kpi.monthlyData);
+                const attainmentPercentage = getAttainmentPercentage(kpi.current, kpi.target);
+                const attainmentColor = getAttainmentColor(kpi.current, kpi.target);
                 const category = KPI_CATEGORIES[kpi.category?.toUpperCase() as keyof typeof KPI_CATEGORIES];
                 
                 return (
@@ -184,10 +158,7 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className={`text-sm font-semibold ${attainmentColor}`}>
-                        {formatValue(currentValue, kpi.unit)}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {kpi.monthlyData ? 'From monthly data' : 'Manual entry'}
+                        {formatValue(kpi.current, kpi.unit)}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -253,10 +224,6 @@ export default function QuarterlyTargetsTable({ kpis, businessUnitName }: Quarte
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-red-500 rounded-full"></div>
               <span>&lt;80% Attainment</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="font-medium">Current (YTD):</span>
-              <span>Cumulative sum of monthly actuals</span>
             </div>
           </div>
           <div className="flex items-center space-x-4">

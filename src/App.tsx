@@ -28,6 +28,7 @@ import PasswordManagementPage from "./pages/admin/PasswordManagementPage";
 import SupabaseKPIAdminPage from "./pages/admin/SupabaseKPIAdminPage";
 import DatabaseAdminPage from "./pages/admin/DatabaseAdminPage";
 import SecureLoginPage from "./pages/SecureLoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { useAuth } from "./context/AuthContext";
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
     return (
       <Router>
         <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<SecureLoginPage />} />
         </Routes>
       </Router>
@@ -54,6 +56,8 @@ function App() {
     <Router>
       <Layout>
         <Routes>
+          {/* Public route (available even when authenticated) */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           {/* Main application routes */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/sales" element={<SalesPage />} />
@@ -68,7 +72,10 @@ function App() {
           />
           <Route path="/customer-success" element={<CustomerSuccessPage />} />
           <Route path="/human-resources" element={<HumanResourcesPage />} />
-          <Route path="/general-administrative" element={<GeneralAdministrativePage />} />
+          <Route
+            path="/general-administrative"
+            element={<GeneralAdministrativePage />}
+          />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/data-flow" element={<DataFlowPage />} />
 

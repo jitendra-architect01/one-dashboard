@@ -56,17 +56,6 @@ interface BulkUpload {
 }
 
 // Database functions for employee management
-const createAdminUserInAuth = async (
-  email: string,
-  password: string
-): Promise<string | null> => {
-  return await AuthService.signUpUser(email, password, {
-    role: "admin",
-    type: "admin",
-  });
-};
-
-// Database functions for employee management
 const createUserInAuth = async (
   email: string,
   password: string
@@ -77,25 +66,36 @@ const createUserInAuth = async (
   });
 };
 
-const sendConfirmationEmail = async (
-  email: string,
-  password: string,
-  employeeName: string
-): Promise<boolean> => {
+const sendConfirmationEmail = async (email: string): Promise<boolean> => {
   try {
     const ok = await AuthService.triggerPasswordReset(
       email,
-      `${window.location.origin}/`
+      `${window.location.origin}/reset-password`
     );
     if (!ok) return false;
-    console.log(
-      `Password setup email sent to ${email} for employee ${employeeName}`
-    );
-    console.log(`Temporary password: ${password}`);
+
     return true;
   } catch (error) {
     console.error("Error sending confirmation email:", error);
     return false;
+  }
+};
+
+// Create employee profile in DB and attach the auth user_id
+const createEmployeeProfile = async (
+  employeeData: Partial<Employee>,
+  userId: string
+): Promise<Employee | null> => {
+  try {
+    const created = await AuthService.createEmployeeProfile({
+      ...employeeData,
+      user_id: userId,
+    });
+    if (!created) return null;
+    return created as Employee;
+  } catch (error) {
+    console.error("Error creating employee profile:", error);
+    return null;
   }
 };
 
@@ -136,31 +136,20 @@ const addEmployeeToDatabase = async (
   employeeData: Partial<Employee>
 ): Promise<Employee | null> => {
   try {
-    // Generate a secure temporary password
-    const tempPassword = AuthService.generateTemporaryPassword(12); //emp123
-
-    // 1. Create user in auth.users table
+    // 1) Create auth user
+    const tempPassword = AuthService.generateTemporaryPassword(12);
     const userId = await createUserInAuth(employeeData.email!, tempPassword);
-    console.log("User ID: ", userId);
     if (!userId) {
       throw new Error("Failed to create user in auth system");
     }
 
-    // 2. Send confirmation email
-    await sendConfirmationEmail(
-      employeeData.email!,
-      tempPassword,
-      `${employeeData.first_name} ${employeeData.last_name}`
-    );
-    console.log("Employee data: ", JSON.stringify(employeeData));
-    // 3. Create employee profile with user_id reference via service
-    const created = await AuthService.createEmployeeProfile({
-      ...employeeData,
-      user_id: userId,
-    });
-    if (!created) return null;
-    console.log("Employee created successfully; signup and email sent.");
-    return created as Employee;
+    // 2) Send email
+    await sendConfirmationEmail(employeeData.email!);
+
+    // 3) Create employee profile
+    const profile = await createEmployeeProfile(employeeData, userId);
+    if (!profile) return null;
+    return profile;
   } catch (error) {
     console.error("Error adding employee:", error);
     return null;
@@ -220,32 +209,17 @@ const updateEmployeeInDatabase = async (
   }
 };
 
-const deleteEmployeeFromDatabase = async (id: string): Promise<boolean> => {
+//workign fine
+const deleteEmployeeFromDatabase = async (code: string): Promise<boolean> => {
   try {
     // First, get the employee to find the user_id
-    const employee = await AuthService.getEmployeeProfileById(id);
-
+    const employee = await AuthService.getEmployeeProfileByEmployeeCode(code);
+    console.log("JJ employee", JSON.stringify(employee));
     // Delete the employee profile first (this will cascade to related records)
-    const profileDeleted = await AuthService.deleteEmployeeProfile(id);
+    const profileDeleted = await AuthService.deleteEmployeeProfile(
+      employee?.id as string
+    );
     if (!profileDeleted) return false;
-
-    // If there was a user_id, delete the auth user as well via Edge Function
-    if (employee?.user_id) {
-      const { error: authError } = await (async () => {
-        const { error } = await callEdgeFunction<{ success: boolean }>(
-          "delete-user",
-          { user_id: employee.user_id }
-        );
-        return { error };
-      })();
-
-      if (authError) {
-        console.error("Error deleting auth user:", authError);
-        // Profile was deleted successfully, so we'll return true
-        // The auth user can be cleaned up manually if needed
-      }
-    }
-
     return true;
   } catch (error) {
     console.error("Error deleting employee:", error);
@@ -416,29 +390,24 @@ export default function EmployeeManagement() {
           `This employee doesn't have a user account yet. Would you like to create one now?`
         )
       ) {
-        const tempPassword = AuthService.generateTemporaryPassword(12);
-
-        const userId = await createUserInAuth(employee.email, tempPassword);
-        if (userId) {
-          // Update employee profile with user_id
-          const updatedEmployee = await updateEmployeeInDatabase(employee.id, {
-            user_id: userId,
-          });
-
-          if (updatedEmployee) {
-            // Send password setup email
-            await sendConfirmationEmail(
-              employee.email,
-              tempPassword,
-              `${employee.first_name} ${employee.last_name}`
-            );
-            alert("User account created and setup email sent.");
-            await loadEmployees(); // Refresh the list
-            return;
-          }
+        const created = await addEmployeeToDatabase({
+          employee_code: employee.employee_code,
+          first_name: employee.first_name,
+          last_name: employee.last_name,
+          email: employee.email,
+          designation: employee.designation,
+          business_unit_id: employee.business_unit_id,
+          business_unit_name: employee.business_unit_name,
+          team: employee.team,
+          skill: employee.skill,
+          manager_email: employee.manager_email,
+        });
+        if (created?.id) {
+          employee.user_id = created.user_id as string;
         }
 
-        alert("Failed to create user account. Please try again.");
+        alert("User account created and setup email sent.");
+        await loadEmployees(); // Refresh the list
         return;
       }
       return;
@@ -460,6 +429,7 @@ export default function EmployeeManagement() {
   };
 
   const handleSaveEmployee = async (e: React.FormEvent) => {
+    alert("Creating user... in handleSaveEmployee");
     e.preventDefault();
     console.log("formData", JSON.stringify(formData));
     // Validate required fields
@@ -591,6 +561,7 @@ export default function EmployeeManagement() {
   };
 
   const handleCreateUserSubmit = async (e: React.FormEvent) => {
+    alert("Creating user...");
     e.preventDefault();
     setCreateUserError(null);
     if (!newUserEmail || !newUserPassword) {
@@ -612,12 +583,11 @@ export default function EmployeeManagement() {
         setCreateUserError("Failed to create user. Please try again.");
         return;
       }
-      alert("User created successfully.");
       setShowCreateUserModal(false);
       setNewUserEmail("");
       setNewUserPassword("");
-      setNewUserRole("admin");
-      setNewUserType("admin");
+      setNewUserRole("viewer");
+      setNewUserType("employee");
     } catch (err) {
       console.error("Error creating user:", err);
       setCreatingUser(false);
@@ -848,7 +818,6 @@ export default function EmployeeManagement() {
       console.error("Upload failed:", error);
 
       const failedUpload: BulkUpload = {
-        id: Date.now().toString(),
         fileName: file.name,
         status: "failed",
         totalRecords: 0,
@@ -920,11 +889,20 @@ export default function EmployeeManagement() {
         return;
       }
 
-      // Map business unit code to business unit ID
+      // Map business unit code from CSV to actual DB business_unit_id (UUID)
       const businessUnitCode =
         businessUnitMap[row.Business_Unit_Code?.toUpperCase()] || "sales";
-      // For now, we'll use a placeholder. In a real implementation, you'd look up the actual business unit ID
-      const businessUnit = businessUnitCode; // This should be the actual UUID from business_units table
+      const buRecord = businessUnits.find(
+        (bu) =>
+          bu.code === businessUnitCode ||
+          bu.name.toLowerCase().replace(/\s+/g, "_") === businessUnitCode
+      );
+      if (!buRecord) {
+        errors.push(
+          `Row ${rowNum}: Invalid Business_Unit_Code: ${row.Business_Unit_Code}`
+        );
+        return;
+      }
 
       // Validate role
       const validRoles = [
@@ -944,7 +922,8 @@ export default function EmployeeManagement() {
         last_name: row.Last_Name,
         email: row.Email,
         job_title: row.Job_Title || "",
-        business_unit_id: businessUnit,
+        business_unit_id: buRecord.id,
+        business_unit_name: buRecord.name,
         department: row.Department || "",
         phone: row.Phone || "",
         manager_email: row.Manager_Email || "",
@@ -953,7 +932,7 @@ export default function EmployeeManagement() {
         is_active: row.Is_Active?.toUpperCase() !== "FALSE",
         location: row.Location || "",
       };
-
+      console.log("JJ newEmployee", JSON.stringify(newEmployee));
       newEmployees.push(newEmployee);
     });
 
@@ -964,20 +943,23 @@ export default function EmployeeManagement() {
       // Create user accounts for each employee
       for (const employee of newEmployees) {
         try {
-          const tempPassword = AuthService.generateTemporaryPassword(12);
-
-          // Create user in auth system
-          const userId = await createUserInAuth(employee.email, tempPassword);
-          if (userId) {
-            // Update employee with user_id
-            employee.user_id = userId;
-
-            // Send confirmation email
-            await sendConfirmationEmail(
-              employee.email,
-              tempPassword,
-              `${employee.first_name} ${employee.last_name}`
-            );
+          console.log(
+            "Creating user... in processEmployeeData" + JSON.stringify(employee)
+          );
+          // Create auth user + profile via shared flow
+          const created = await addEmployeeToDatabase({
+            employee_code: employee.employee_code,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            email: employee.email,
+            job_title: employee.job_title,
+            business_unit_id: employee.business_unit_id,
+            department: employee.department,
+            phone: employee.phone,
+            manager_email: employee.manager_email,
+          });
+          if (created?.user_id) {
+            employee.user_id = created.user_id as string;
           }
         } catch (error) {
           console.error(
@@ -1366,7 +1348,9 @@ export default function EmployeeManagement() {
                             </button>
                           )}
                           <button
-                            onClick={() => handleDeleteEmployee(employee.id)}
+                            onClick={() =>
+                              handleDeleteEmployee(employee.employee_code)
+                            }
                             className="text-red-600 hover:text-red-900"
                             title="Delete Employee"
                           >

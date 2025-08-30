@@ -7,7 +7,6 @@ import {
 } from "../types/auth";
 import { supabase } from "../lib/supabase";
 import { createClient } from "@supabase/supabase-js";
-import { User } from "lucide-react";
 
 // JWT token management
 const TOKEN_KEY = "dashboard_auth_token";
@@ -492,6 +491,18 @@ export class AuthService {
       });
 
       if (error) {
+        // If the user already exists, try to look up the id by email (no admin)
+        const message = (error.message || "").toLowerCase();
+        const alreadyExists =
+          message.includes("already registered") ||
+          message.includes("already exists") ||
+          message.includes("user exists");
+
+        if (alreadyExists) {
+          // Check application table mapping instead of auth.users
+          const existingId = await this.lookupUserIdByEmail(email);
+          if (existingId) return existingId;
+        }
         console.error("Error creating user via signUp:", error.message);
         return null;
       }
@@ -499,6 +510,67 @@ export class AuthService {
       return data.user?.id ?? null;
     } catch (error) {
       console.error("Error creating user in auth:", error);
+      return null;
+    }
+  }
+
+  static async lookupUserIdByEmail(email: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from("employee_profiles")
+        .select("user_id")
+        .eq("email", email)
+        .maybeSingle();
+      if (error) return null;
+      return (data?.user_id as string) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Admin-only: find user id by email without password. Requires service role key.
+  private static async getUserIdByEmailAdmin(
+    email: string
+  ): Promise<string | null> {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as
+        | string
+        | undefined;
+
+      if (!supabaseUrl || !serviceRoleKey) return null; // Not available on client by default
+
+      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      });
+
+      const target = email.toLowerCase();
+      let page = 1;
+      const perPage = 200;
+      // Iterate pages until found or exhausted
+      // Note: consider server-side function for large user bases
+      // to avoid client-side pagination.
+      while (true) {
+        const { data, error } = await adminClient.auth.admin.listUsers({
+          page,
+          perPage,
+        });
+        if (error) return null;
+        const users = (data?.users ?? []).filter((u: any) => !!u);
+        const match = users.find(
+          (u: any) => (u.email || "").toLowerCase() === target
+        );
+        if (match) return match.id as string;
+        if (!users.length) break;
+        page += 1;
+        if (page > 50) break; // hard stop to avoid runaway
+      }
+      return null;
+    } catch {
       return null;
     }
   }

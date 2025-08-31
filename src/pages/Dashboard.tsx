@@ -171,21 +171,6 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">
-                  Total KPIs
-                </p>
-                <p className="text-3xl font-bold text-gray-900">{totalKPIs}</p>
-                <p className="text-xs text-green-600 mt-1">Across all units</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Target className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">
                   Business Units
                 </p>
                 <p className="text-3xl font-bold text-gray-900">
@@ -203,15 +188,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-1">
-                  Active Actions
+                  Total KPIs
                 </p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {totalActions}
-                </p>
-                <p className="text-xs text-yellow-600 mt-1">In progress</p>
+                <p className="text-3xl font-bold text-gray-900">{totalKPIs}</p>
+                <p className="text-xs text-green-600 mt-1">Across all units</p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-yellow-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Target className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -229,6 +212,23 @@ export default function Dashboard() {
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Crown className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-1">
+                  Active Actions
+                </p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {totalActions}
+                </p>
+                <p className="text-xs text-yellow-600 mt-1">In progress</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </div>

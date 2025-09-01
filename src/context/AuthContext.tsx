@@ -7,13 +7,7 @@ import React, {
 } from "react";
 import { AuthService } from "../services/authService";
 import LoadingSpinner from "../components/LoadingSpinner";
-import {
-  User,
-  AdminUser,
-  Employee,
-  NewEmployeeData,
-  AuthContextType,
-} from "../types/auth";
+import { User, Employee, AuthContextType } from "../types/auth";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -93,18 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return await AuthService.updateAdminPassword(userId, newPassword);
   };
 
-  const updateEmployeePassword = async (
-    employeeId: string,
-    newPassword: string
-  ): Promise<boolean> => {
-    return await AuthService.updateEmployeePassword(employeeId, newPassword);
-  };
-
-  const getAdminUsers = async (): Promise<AdminUser[]> => {
-    return await AuthService.getAdminUsers();
-  };
-
-  const getEmployees = async (): Promise<Employee[]> => {
+  const getEmployees = async (): Promise<EmployeeProfile[]> => {
     return await AuthService.getEmployees();
   };
 
@@ -128,17 +111,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     return await AuthService.deleteEmployeeProfile(id);
   };
 
-  const getEmployeeProfileById = async (id: string) => {
-    return await AuthService.getEmployeeProfileById(id);
-  };
-
-  const addNewEmployee = async (
-    employeeData: NewEmployeeData,
-    initialPassword: string
-  ): Promise<boolean> => {
-    return await AuthService.addNewEmployee(employeeData, initialPassword);
-  };
-
   // Show loading state while checking authentication
   if (loading) {
     return (
@@ -153,10 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           isAdmin,
           isEmployee,
           updateAdminPassword,
-          updateEmployeePassword,
-          getAdminUsers,
           getEmployees,
-          addNewEmployee,
         }}
       >
         <LoadingSpinner message="Checking authentication..." />
@@ -176,15 +145,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isAdmin,
         isEmployee,
         updateAdminPassword,
-        updateEmployeePassword,
-        getAdminUsers,
         getEmployees,
         listEmployeeProfiles,
         createEmployeeProfile,
         updateEmployeeProfile,
         deleteEmployeeProfile,
-        getEmployeeProfileById,
-        addNewEmployee,
       }}
     >
       {children}

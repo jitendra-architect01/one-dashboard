@@ -1,10 +1,4 @@
-import {
-  User,
-  AdminUser,
-  Employee,
-  NewEmployeeData,
-  EmployeeProfile,
-} from "../types/auth";
+import { User, EmployeeProfile } from "../types/auth";
 import { supabase } from "../lib/supabase";
 import { createClient } from "@supabase/supabase-js";
 
@@ -191,32 +185,11 @@ export class AuthService {
     }
   }
 
-  // Get admin users
-  static async getAdminUsers(): Promise<AdminUser[]> {
-    try {
-      const { data: users, error } = await supabase
-        .from("users")
-        .select("id, email, role")
-        .eq("role", "admin");
-
-      if (error) throw error;
-
-      return users.map((user) => ({
-        id: user.id,
-        username: user.email,
-        role: user.role as "admin" | "viewer",
-      }));
-    } catch (error) {
-      console.error("Failed to fetch admin users:", error);
-      return [];
-    }
-  }
-
   // Get employees
-  static async getEmployees(): Promise<Employee[]> {
+  static async getEmployees(): Promise<EmployeeProfile[]> {
     try {
       const { data: employees, error } = await supabase
-        .from("employees")
+        .from("employees_profiles")
         .select(
           "id, employee_code, first_name, last_name, email, designation, business_unit_name"
         );
@@ -235,48 +208,6 @@ export class AuthService {
     } catch (error) {
       console.error("Failed to fetch employees:", error);
       return [];
-    }
-  }
-
-  // Add new employee
-  static async addNewEmployee(
-    employeeData: NewEmployeeData,
-    initialPassword: string
-  ): Promise<boolean> {
-    try {
-      // First, create the employee in the employees table
-      const { error: employeeError } = await supabase
-        .from("employees_profiles")
-        .insert({
-          employee_code:
-            employeeData.employee_code ||
-            `EMP${Date.now().toString().slice(-6)}`,
-          first_name: employeeData.first_name,
-          last_name: employeeData.last_name,
-          email: employeeData.email,
-          designation: employeeData.designation,
-          business_unit_id: employeeData.business_unit_id,
-          business_unit_name: employeeData.business_unit_name,
-          team: employeeData.team,
-          skill: employeeData.skill,
-          manager_email: employeeData.manager_email,
-        });
-
-      if (employeeError) throw employeeError;
-
-      // Then create the auth user
-      const { error: authError } = await supabase.auth.admin.createUser({
-        email: employeeData.email,
-        password: initialPassword,
-        email_confirm: true,
-      });
-
-      if (authError) throw authError;
-
-      return true;
-    } catch (error) {
-      console.error("Error adding new employee:", error);
-      return false;
     }
   }
 
@@ -304,36 +235,6 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error("Supabase password update failed:", error);
-      return false;
-    }
-  }
-
-  // Update employee password
-  static async updateEmployeePassword(
-    employeeId: string,
-    newPassword: string
-  ): Promise<boolean> {
-    try {
-      // First, get the employee's email
-      const { data: employee, error: employeeError } = await supabase
-        .from("employees_profiles")
-        .select("email")
-        .eq("id", employeeId)
-        .single();
-
-      if (employeeError || !employee) {
-        throw new Error("Employee not found");
-      }
-
-      // Update the password in Supabase Auth
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error("Supabase employee password update failed:", error);
       return false;
     }
   }
@@ -397,66 +298,6 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error("Failed to demote user to viewer:", error);
-      return false;
-    }
-  }
-
-  // Get all users with roles
-  static async getAllUsers(): Promise<AdminUser[]> {
-    try {
-      const { data: users, error } = await supabase.auth.admin.listUsers();
-
-      if (error) throw error;
-
-      return users.users.map((user) => ({
-        id: user.id,
-        username: user.email || user.id,
-        role: (user.user_metadata?.role as "admin" | "viewer") || "viewer",
-      }));
-    } catch (error) {
-      console.error("Failed to get users:", error);
-      return [];
-    }
-  }
-
-  // List raw auth users (admin) with simple pagination
-  static async fetchAuthUsers(
-    page: number = 1,
-    perPage: number = 50
-  ): Promise<
-    Array<{
-      id: string;
-      email?: string | null;
-      user_metadata?: Record<string, unknown>;
-    }>
-  > {
-    try {
-      const { data, error } = await supabase.auth.admin.listUsers({
-        page,
-        perPage,
-      });
-
-      if (error) throw error;
-
-      return (data.users || []).map((u) => ({
-        id: u.id,
-        email: u.email ?? null,
-        user_metadata: u.user_metadata ?? {},
-      }));
-    } catch (error) {
-      console.error("Failed to fetch auth users:", error);
-      return [];
-    }
-  }
-
-  // Delete an auth user by id (admin)
-  static async deleteAuthUserById(userId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error("Failed to delete auth user:", error);
       return false;
     }
   }
@@ -527,54 +368,6 @@ export class AuthService {
       return null;
     }
   }
-
-  // Admin-only: find user id by email without password. Requires service role key.
-  private static async getUserIdByEmailAdmin(
-    email: string
-  ): Promise<string | null> {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as
-        | string
-        | undefined;
-
-      if (!supabaseUrl || !serviceRoleKey) return null; // Not available on client by default
-
-      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-          detectSessionInUrl: false,
-        },
-      });
-
-      const target = email.toLowerCase();
-      let page = 1;
-      const perPage = 200;
-      // Iterate pages until found or exhausted
-      // Note: consider server-side function for large user bases
-      // to avoid client-side pagination.
-      while (true) {
-        const { data, error } = await adminClient.auth.admin.listUsers({
-          page,
-          perPage,
-        });
-        if (error) return null;
-        const users = (data?.users ?? []).filter((u: any) => !!u);
-        const match = users.find(
-          (u: any) => (u.email || "").toLowerCase() === target
-        );
-        if (match) return match.id as string;
-        if (!users.length) break;
-        page += 1;
-        if (page > 50) break; // hard stop to avoid runaway
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
   // Trigger password reset email
   static async triggerPasswordReset(
     email: string,
@@ -596,14 +389,18 @@ export class AuthService {
   }
 
   // Employee profile APIs (centralized)
-  static async listEmployeeProfiles(): Promise<any[]> {
+  static async listEmployeeProfiles(): Promise<
+    Array<EmployeeProfile & { business_units?: { name: string } }>
+  > {
     try {
       const { data, error } = await supabase
         .from("employee_profiles")
         .select(`*, business_units:business_units(name)`)
         .order("first_name");
       if (error) throw error;
-      return data || [];
+      return (data || []) as Array<
+        EmployeeProfile & { business_units?: { name: string } }
+      >;
     } catch (error) {
       console.error("Error fetching employees:", error);
       return [];
@@ -613,7 +410,7 @@ export class AuthService {
   // Get a single employee profile by id
   static async getEmployeeProfileByEmployeeCode(
     code: string
-  ): Promise<any | null> {
+  ): Promise<EmployeeProfile | null> {
     try {
       const { data, error } = await supabase
         .from("employee_profiles")
@@ -621,7 +418,7 @@ export class AuthService {
         .eq("employee_code", code)
         .single();
       if (error) throw error;
-      return data || null;
+      return (data as EmployeeProfile) || null;
     } catch (error) {
       console.error("Error fetching employee profile by code:", error);
       return null;
@@ -629,16 +426,16 @@ export class AuthService {
   }
 
   static async createEmployeeProfile(
-    payload: Record<string, unknown>
-  ): Promise<any | null> {
+    profile: Partial<EmployeeProfile>
+  ): Promise<EmployeeProfile | null> {
     try {
       const { data, error } = await supabase
         .from("employee_profiles")
-        .insert([payload])
+        .insert([profile])
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as EmployeeProfile;
     } catch (error) {
       console.error("Error adding employee profile:", error);
       return null;
@@ -646,18 +443,18 @@ export class AuthService {
   }
 
   static async updateEmployeeProfile(
-    id: string,
+    employee_code: string,
     updates: Record<string, unknown>
-  ): Promise<any | null> {
+  ): Promise<EmployeeProfile | null> {
     try {
       const { data, error } = await supabase
         .from("employee_profiles")
         .update(updates)
-        .eq("employee_code", id)
+        .eq("employee_code", employee_code)
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as EmployeeProfile;
     } catch (error) {
       console.error("Error updating employee:", error);
       return null;

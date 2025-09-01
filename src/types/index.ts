@@ -9,15 +9,7 @@ export type {
   BusinessUnitSummary,
 } from "../hooks/useSupabaseData";
 
-export type {
-  User,
-  EmployeeProfile,
-  AdminUser,
-  Employee,
-  NewEmployeeData,
-  EmployeeCredentials,
-  AuthContextType,
-} from "./auth";
+export type { User, EmployeeProfile, AdminUser, AuthContextType } from "./auth";
 
 export type { DataContextType } from "./data";
 

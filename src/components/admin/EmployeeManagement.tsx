@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AuthService } from "../../services/authService";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { callEdgeFunction, supabase } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import {
   Users,
   Edit,
@@ -23,27 +23,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-
-interface Employee {
-  user_id?: string;
-  employee_code: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  job_title: string;
-  department: string;
-  business_unit_id: string | null;
-  business_unit_name?: string;
-  manager_id?: string | null;
-  manager_email?: string | null;
-  hire_date: string;
-  role: "admin" | "manager" | "employee" | "viewer";
-  is_active: boolean;
-  phone?: string;
-  location?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import { EmployeeProfile } from "../../types";
 
 interface BulkUpload {
   fileName: string;
@@ -88,16 +68,14 @@ const sendConfirmationEmail = async (
 
 // Create employee profile in DB and attach the auth user_id
 const createEmployeeProfile = async (
-  employeeData: Partial<Employee>,
-  userId: string
-): Promise<Employee | null> => {
+  employeeData: Partial<EmployeeProfile>
+): Promise<EmployeeProfile | null> => {
   try {
     const created = await AuthService.createEmployeeProfile({
       ...employeeData,
-      user_id: userId,
     });
     if (!created) return null;
-    return created as Employee;
+    return created;
   } catch (error) {
     console.error("Error creating employee profile:", error);
     return null;
@@ -111,7 +89,7 @@ const resetEmployeePassword = async (
   try {
     const ok = await AuthService.triggerPasswordReset(
       email,
-      `${window.location.origin}/`
+      `${window.location.origin}/reset-password?employee_code=${encodeURIComponent}`
     );
     if (!ok) return false;
     console.log(
@@ -124,10 +102,11 @@ const resetEmployeePassword = async (
   }
 };
 
-const fetchEmployeesFromDatabase = async (): Promise<Employee[]> => {
+const fetchEmployeesFromDatabase = async (): Promise<EmployeeProfile[]> => {
   try {
     const data = await AuthService.listEmployeeProfiles();
-    return (data || []).map((emp: any) => ({
+    console.log("JJ data", JSON.stringify(data));
+    return (data || []).map((emp: EmployeeProfile) => ({
       ...emp,
       business_unit_name: emp.business_units?.name || "Unknown",
     }));
@@ -138,24 +117,11 @@ const fetchEmployeesFromDatabase = async (): Promise<Employee[]> => {
 };
 
 const addEmployeeToDatabase = async (
-  employeeData: Partial<Employee>
-): Promise<Employee | null> => {
+  employeeData: Partial<EmployeeProfile>
+): Promise<EmployeeProfile | null> => {
   try {
-    // 1) Create auth user
-    const tempPassword = AuthService.generateTemporaryPassword(12);
-    const userId = await createUserInAuth(employeeData.email!, tempPassword);
-    if (!userId) {
-      throw new Error("Failed to create user in auth system");
-    }
-
-    // 2) Send email
-    await sendConfirmationEmail(
-      employeeData.email!,
-      employeeData.employee_code as string
-    );
-
     // 3) Create employee profile
-    const profile = await createEmployeeProfile(employeeData, userId);
+    const profile = await createEmployeeProfile(employeeData);
     if (!profile) return null;
     return profile;
   } catch (error) {
@@ -166,51 +132,15 @@ const addEmployeeToDatabase = async (
 
 const updateEmployeeInDatabase = async (
   code: string,
-  employeeData: Partial<Employee>
-): Promise<Employee | null> => {
+  employeeData: Partial<EmployeeProfile>
+): Promise<EmployeeProfile | null> => {
   try {
-    // Normalize manager_id: empty string -> null
-    const normalizedData: Partial<Employee> = {
-      ...employeeData,
-      manager_id:
-        typeof employeeData.manager_id === "string" &&
-        employeeData.manager_id.trim() === ""
-          ? null
-          : employeeData.manager_id ?? null,
-    };
-    // If email is being updated, we need to update the auth user as well
-    if (normalizedData.email) {
-      console.log("updating email", normalizedData.email);
-      // First, get the current employee to find the user_id
-      const currentEmployee =
-        await AuthService.getEmployeeProfileByEmployeeCode(code);
-
-      if (
-        currentEmployee?.user_id &&
-        currentEmployee.email !== normalizedData.email
-      ) {
-        // Update the auth user's email via Edge Function
-        const { error: updateErr } = await (async () => {
-          const { error } = await callEdgeFunction<{ success: boolean }>(
-            "update-user",
-            { user_id: currentEmployee.user_id, email: normalizedData.email }
-          );
-          return { error };
-        })();
-
-        if (updateErr) {
-          console.error("Error updating auth user email:", updateErr);
-          // Continue with profile update even if auth update fails
-        }
-      }
-    }
-
     const updated = await AuthService.updateEmployeeProfile(
       code,
-      normalizedData as Record<string, unknown>
+      employeeData as Record<string, unknown>
     );
     if (!updated) return null;
-    return updated as Employee;
+    return updated as EmployeeProfile;
   } catch (error) {
     console.error("Error updating employee:", error);
     return null;
@@ -222,7 +152,6 @@ const deleteEmployeeFromDatabase = async (code: string): Promise<boolean> => {
   try {
     // First, get the employee to find the user_id
     const employee = await AuthService.getEmployeeProfileByEmployeeCode(code);
-    console.log("JJ employee", JSON.stringify(employee));
     // Delete the employee profile first (this will cascade to related records)
     const profileDeleted = await AuthService.deleteEmployeeProfile(
       employee?.id as string
@@ -236,7 +165,7 @@ const deleteEmployeeFromDatabase = async (code: string): Promise<boolean> => {
 };
 
 export default function EmployeeManagement() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -244,8 +173,9 @@ export default function EmployeeManagement() {
   const [filterRole, setFilterRole] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [formData, setFormData] = useState<Partial<Employee>>({});
+  const [editingEmployee, setEditingEmployee] =
+    useState<EmployeeProfile | null>(null);
+  const [formData, setFormData] = useState<Partial<EmployeeProfile>>({});
   const [uploadHistory, setUploadHistory] = useState<BulkUpload[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -323,7 +253,7 @@ export default function EmployeeManagement() {
     fetchBusinessUnits();
   }, []);
 
-  const getRoleColor = (role: Employee["role"]) => {
+  const getRoleColor = (role: EmployeeProfile["role"]) => {
     switch (role) {
       case "admin":
         return "bg-purple-100 text-purple-800";
@@ -348,7 +278,7 @@ export default function EmployeeManagement() {
       email: "",
       job_title: "",
       department: "",
-      business_unit_id: null,
+      business_unit_id: "",
       manager_email: "",
       hire_date: new Date().toISOString().split("T")[0],
       role: "employee",
@@ -358,7 +288,7 @@ export default function EmployeeManagement() {
     });
   };
 
-  const handleEditEmployee = (employee: Employee) => {
+  const handleEditEmployee = (employee: EmployeeProfile) => {
     setEditingEmployee(employee);
     setShowAddForm(true);
     setFormData({
@@ -390,42 +320,8 @@ export default function EmployeeManagement() {
     }
   };
 
-  const handleResetPassword = async (employee: Employee) => {
+  const handleResetPassword = async (employee: EmployeeProfile) => {
     if (!employee.user_id) {
-      // Create user account for legacy employee
-      if (
-        confirm(
-          `This employee doesn't have a user account yet. Would you like to create one now?`
-        )
-      ) {
-        const created = await addEmployeeToDatabase({
-          employee_code: employee.employee_code,
-          first_name: employee.first_name,
-          last_name: employee.last_name,
-          email: employee.email,
-          designation: employee.designation,
-          business_unit_id: employee.business_unit_id,
-          business_unit_name: employee.business_unit_name,
-          team: employee.team,
-          skill: employee.skill,
-          manager_email: employee.manager_email,
-        });
-        if (created?.id) {
-          employee.user_id = created.user_id as string;
-        }
-
-        alert("User account created and setup email sent.");
-        await loadEmployees(); // Refresh the list
-        return;
-      }
-      return;
-    }
-
-    if (
-      confirm(
-        `Are you sure you want to reset the password for ${employee.first_name} ${employee.last_name}?`
-      )
-    ) {
       const ok = await resetEmployeePassword(
         employee.email,
         `${employee.first_name} ${employee.last_name}`
@@ -437,7 +333,6 @@ export default function EmployeeManagement() {
   };
 
   const handleSaveEmployee = async (e: React.FormEvent) => {
-    alert("Creating user... in handleSaveEmployee");
     e.preventDefault();
     console.log("formData", JSON.stringify(formData));
     // Validate required fields
@@ -489,14 +384,14 @@ export default function EmployeeManagement() {
           business_unit_id: formData.business_unit_id,
           manager_email: formData.manager_email?.trim()
             ? formData.manager_email
-            : null,
+            : "",
           hire_date:
             formData.hire_date || new Date().toISOString().split("T")[0],
           role: formData.role || "employee",
-          is_active:
-            formData.is_active !== undefined ? formData.is_active : true,
           phone: formData.phone || "",
           location: formData.location || "",
+          is_active:
+            formData.is_active !== undefined ? formData.is_active : true,
         }
       );
 
@@ -518,12 +413,8 @@ export default function EmployeeManagement() {
         business_unit_id: formData.business_unit_id,
         manager_email: formData.manager_email?.trim()
           ? formData.manager_email
-          : null,
-        manager_id:
-          typeof formData.manager_id === "string" &&
-          formData.manager_id.trim() === ""
-            ? null
-            : formData.manager_id ?? null,
+          : "",
+        manager_id: formData.manager_id ? formData.manager_id : null,
         hire_date: formData.hire_date || new Date().toISOString().split("T")[0],
         role: formData.role || "employee",
         is_active: formData.is_active !== undefined ? formData.is_active : true,
@@ -553,7 +444,7 @@ export default function EmployeeManagement() {
   };
 
   const handleInputChange = (
-    field: keyof Employee,
+    field: keyof EmployeeProfile,
     value: string | boolean | null
   ) => {
     setFormData((prev) => ({
@@ -568,8 +459,7 @@ export default function EmployeeManagement() {
     setFormData({});
   };
 
-  const handleCreateUserSubmit = async (e: React.FormEvent) => {
-    alert("Creating user...");
+  const handleCreateAdminUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateUserError(null);
     if (!newUserEmail || !newUserPassword) {
@@ -849,7 +739,7 @@ export default function EmployeeManagement() {
     setUploadProgress(75);
 
     const errors: string[] = [];
-    const newEmployees: Employee[] = [];
+    const newEmployees: EmployeeProfile[] = [];
     const businessUnitMap: { [key: string]: string } = {
       LEADERSHIP: "leadership",
       SALES: "sales",
@@ -924,19 +814,18 @@ export default function EmployeeManagement() {
       const role = validRoles.includes(row.Role) ? row.Role : "Associate";
 
       // Create employee object
-      const newEmployee: Employee = {
+      const newEmployee: EmployeeProfile = {
         employee_code: row.Employee_Code,
         first_name: row.First_Name,
         last_name: row.Last_Name,
         email: row.Email,
         job_title: row.Job_Title || "",
         business_unit_id: buRecord.id,
-        business_unit_name: buRecord.name,
+        manager_email: row.Manager_Email || "",
         department: row.Department || "",
         phone: row.Phone || "",
-        manager_email: row.Manager_Email || "",
         hire_date: row.Hire_Date || new Date().toISOString().split("T")[0],
-        role: role as Employee["role"],
+        role: role as EmployeeProfile["role"],
         is_active: row.Is_Active?.toUpperCase() !== "FALSE",
         location: row.Location || "",
       };
@@ -955,17 +844,7 @@ export default function EmployeeManagement() {
             "Creating user... in processEmployeeData" + JSON.stringify(employee)
           );
           // Create auth user + profile via shared flow
-          const created = await addEmployeeToDatabase({
-            employee_code: employee.employee_code,
-            first_name: employee.first_name,
-            last_name: employee.last_name,
-            email: employee.email,
-            job_title: employee.job_title,
-            business_unit_id: employee.business_unit_id,
-            department: employee.department,
-            phone: employee.phone,
-            manager_email: employee.manager_email,
-          });
+          const created = await addEmployeeToDatabase(employee);
           if (created?.user_id) {
             employee.user_id = created.user_id as string;
           }
@@ -1526,21 +1405,6 @@ export default function EmployeeManagement() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Skill
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Sales Strategy"
-                      value={formData.phone || ""}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Manager Email
                     </label>
                     <input
@@ -1860,7 +1724,10 @@ export default function EmployeeManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+              <form
+                onSubmit={handleCreateAdminUserSubmit}
+                className="space-y-4"
+              >
                 {createUserError && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                     {createUserError}
@@ -1907,29 +1774,6 @@ export default function EmployeeManagement() {
                   >
                     <option value="admin">admin</option>
                     <option value="manager">manager</option>
-                    <option value="viewer">viewer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newUserType}
-                    onChange={(e) =>
-                      setNewUserType(
-                        e.target.value as
-                          | "admin"
-                          | "manager"
-                          | "employee"
-                          | "viewer"
-                      )
-                    }
-                  >
-                    <option value="admin">admin</option>
-                    <option value="manager">manager</option>
-                    <option value="employee">employee</option>
                     <option value="viewer">viewer</option>
                   </select>
                 </div>

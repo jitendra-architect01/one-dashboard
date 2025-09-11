@@ -436,6 +436,7 @@ export class AuthService {
         .single();
       if (error) throw error;
       console.log("createEmployeeProfile data", JSON.stringify(data));
+      console.log("createEmployeeProfile error", JSON.stringify(error));
       return data as EmployeeProfile;
     } catch (error) {
       console.error("Error adding employee profile:", error);

@@ -131,11 +131,10 @@ export class AuthService {
         .select("*")
         .eq("employee_code", employeeCode)
         .single();
-      console.log("employeeData", JSON.stringify(employeeData));
       if (employeeError || !employeeData) {
         throw new Error("Employee not found");
       }
-
+      console.log("employeeData", JSON.stringify(employeeData));
       // Then authenticate with Supabase using the employee's email
       const { data, error } = await supabase.auth.signInWithPassword({
         email: employeeData.email,
@@ -170,7 +169,6 @@ export class AuthService {
       return userData;
     } catch (error) {
       console.error("Supabase employee login failed:", error);
-      return null;
     }
   }
 
@@ -434,7 +432,11 @@ export class AuthService {
         .insert([profile])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error("createEmployeeProfile error", error);
+        throw error;
+      }
+      console.log("createEmployeeProfile data", JSON.stringify(data));
       return data as EmployeeProfile;
     } catch (error) {
       console.error("Error adding employee profile:", error);

@@ -131,7 +131,6 @@ export class AuthService {
         .select("*")
         .eq("employee_code", employeeCode)
         .single();
-      console.log("employeeData", JSON.stringify(employeeData));
       if (employeeError || !employeeData) {
         throw new Error("Employee not found");
       }
@@ -170,7 +169,6 @@ export class AuthService {
       return userData;
     } catch (error) {
       console.error("Supabase employee login failed:", error);
-      return null;
     }
   }
 
